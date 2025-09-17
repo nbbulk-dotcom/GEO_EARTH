@@ -39,9 +39,9 @@ const PredictionDisplay: React.FC = () => {
     }
   };
 
-  const maxProbability = Math.max(...predictions.map((p: any) => p.probability_percent));
-  const avgProbability = predictions.reduce((sum: number, p: any) => sum + p.probability_percent, 0) / predictions.length;
-  const highRiskDays = predictions.filter((p: any) => p.risk_level.toLowerCase() === 'high').length;
+  const maxProbability = Math.max(...predictions.map(p => p.probability_percent));
+  const avgProbability = predictions.reduce((sum, p) => sum + p.probability_percent, 0) / predictions.length;
+  const highRiskDays = predictions.filter(p => p.risk_level.toLowerCase() === 'high').length;
 
   return (
     <div>
@@ -87,7 +87,7 @@ const PredictionDisplay: React.FC = () => {
       <div className="overflow-x-auto">
         <div className="min-w-full">
           <div className="grid grid-cols-7 gap-2 mb-4">
-            {predictions.slice(0, 21).map((prediction: any) => (
+            {predictions.slice(0, 21).map((prediction) => (
               <div
                 key={prediction.day}
                 className={`p-3 rounded-lg border transition-all duration-300 hover:scale-105 ${getRiskColor(prediction.risk_level)}`}
@@ -111,7 +111,7 @@ const PredictionDisplay: React.FC = () => {
                     </div>
                     
                     <div className="text-xs">
-                      M{prediction.magnitude_prediction.toFixed(1)}
+                      M{prediction.magnitude_estimate.toFixed(1)}
                     </div>
                     
                     <div className={`text-xs font-medium ${getConfidenceColor(prediction.confidence_level)}`}>
@@ -137,7 +137,7 @@ const PredictionDisplay: React.FC = () => {
           </h4>
           <div className="space-y-2">
             {['HIGH', 'ELEVATED', 'MODERATE', 'LOW'].map(level => {
-              const count = predictions.filter((p: any) => p.risk_level.toUpperCase() === level).length;
+              const count = predictions.filter(p => p.risk_level.toUpperCase() === level).length;
               const percentage = (count / predictions.length) * 100;
               
               return (
@@ -169,14 +169,14 @@ const PredictionDisplay: React.FC = () => {
             <div className="flex justify-between">
               <span className="text-gray-400">Peak Risk Day:</span>
               <span className="text-white">
-                Day {predictions.find((p: any) => p.probability_percent === maxProbability)?.day || 'N/A'}
+                Day {predictions.find(p => p.probability_percent === maxProbability)?.day || 'N/A'}
               </span>
             </div>
             
             <div className="flex justify-between">
               <span className="text-gray-400">Peak Risk Date:</span>
               <span className="text-white">
-                {predictions.find((p: any) => p.probability_percent === maxProbability)?.date || 'N/A'}
+                {predictions.find(p => p.probability_percent === maxProbability)?.date || 'N/A'}
               </span>
             </div>
             

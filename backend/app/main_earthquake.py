@@ -22,7 +22,7 @@ app.add_middleware(
 
 app.include_router(prediction.router, prefix="/api", tags=["earthquake-prediction"])
 app.include_router(data.router, prefix="/api", tags=["data-sources"])
-app.include_router(location.router, prefix="/api", tags=["location"])
+app.include_router(location.router, prefix="/api/location", tags=["location"])
 
 frontend_path = os.path.join(os.path.dirname(__file__), "..", "..", "brett-frontend", "dist")
 if os.path.exists(frontend_path):
