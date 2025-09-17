@@ -1,0 +1,587 @@
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime, timedelta
+import asyncio
+import math
+
+from app.models.prediction import LocationInput, EngineResult, CombinedPrediction, CymaticData
+from app.core.brett_engine import BrettCoreEngine
+from app.core.earthquake_space_engine import EarthquakeSpaceEngine
+from app.subroutines.magnetometer import LocalizedMagnetometerAnalyzer
+from app.services.data_sources import DataSourcesService
+
+router = APIRouter()
+
+data_service = DataSourcesService()
+brett_engine = BrettCoreEngine(data_service=data_service)
+earthquake_space_engine = EarthquakeSpaceEngine()
+magnetometer_analyzer = LocalizedMagnetometerAnalyzer()
+
+class PredictionRequest(BaseModel):
+    location: LocationInput
+    engine_type: str
+    blockchain_token: Optional[str] = None
+    live_mode: bool = True
+
+class CymaticRequest(BaseModel):
+    location: LocationInput
+    day: int = 1
+    live_mode: bool = True
+
+@router.post("/brettearth", response_model=EngineResult)
+async def calculate_brettearth_prediction(
+    request: PredictionRequest
+):
+    try:
+        location = request.location
+        
+        await data_service.update_all_sources(
+            location.latitude, 
+            location.longitude, 
+            location.radius_km
+        )
+        
+        magnetometer_result = await magnetometer_analyzer.analyze_location(
+            location.latitude, 
+            location.longitude
+        )
+        
+        brett_result = brett_engine.calculate_prediction(
+            location.latitude,
+            location.longitude,
+            days_ahead=21,
+            token="test_client"
+        )
+        
+        if not brett_result.get('success'):
+            raise HTTPException(status_code=500, detail=brett_result.get('error'))
+        
+        cmyk_predictions = calculate_cmyk_model(brett_result, magnetometer_result)
+        
+        engine_result = EngineResult(
+            engine_type="BRETTEARTH",
+            predictions=cmyk_predictions,
+            summary=brett_result['summary'],
+            calculation_time=datetime.utcnow(),
+            data_sources_used=["USGS", "EMSC", "INTERMAGNET", "NOAA"]
+        )
+        
+        return engine_result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"BRETTEARTH calculation failed: {str(e)}")
+
+@router.post("/brettspace", response_model=EngineResult)
+async def calculate_brettspace_prediction(
+    request: PredictionRequest
+):
+    try:
+        # if not current_user.get('blockchain_auth'):
+        #     raise HTTPException(status_code=401, detail="Blockchain authentication required for BRETTSPACE")
+        
+        location = request.location
+        
+        await data_service.update_all_sources(
+            location.latitude, 
+            location.longitude, 
+            location.radius_km
+        )
+        
+        seismic_factors = {
+            'tectonic_depth_km': 15.0,
+            'crustal_stress_mpa': 75.0,
+            'altitude_refraction_80km': 1.2,
+            'altitude_refraction_85km': 1.15,
+            'seismic_adjustment': 5.0
+        }
+        
+        space_result = await earthquake_space_engine.calculate_prediction(
+            latitude=location.latitude,
+            longitude=location.longitude,
+            radius_km=location.radius_km,
+            seismic_factors=seismic_factors
+        )
+        
+        if not space_result['success']:
+            raise HTTPException(status_code=500, detail=space_result.get('error', 'SPACE calculation failed'))
+        
+        engine_result = EngineResult(
+            engine_type="BRETTSPACE",
+            predictions=space_result['predictions'],
+            summary=space_result['summary'],
+            calculation_time=datetime.utcnow(),
+            data_sources_used=["NASA", "NOAA", "GFZ", "EARTHQUAKE_SPACE_ENGINE"]
+        )
+        
+        return engine_result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"BRETTSPACE calculation failed: {str(e)}")
+
+@router.post("/brettcombo", response_model=CombinedPrediction)
+async def calculate_brettcombo_prediction(
+    request: PredictionRequest
+):
+    try:
+        
+        brettearth_request = PredictionRequest(
+            location=request.location,
+            engine_type="BRETTEARTH"
+        )
+        
+        brettspace_request = PredictionRequest(
+            location=request.location,
+            engine_type="BRETTSPACE",
+            blockchain_token=request.blockchain_token
+        )
+        
+        brettearth_result = await calculate_brettearth_prediction(brettearth_request)
+        brettspace_result = await calculate_brettspace_prediction(brettspace_request)
+        
+        brettearth_dicts = [pred.dict() for pred in brettearth_result.predictions]
+        brettspace_dicts = [pred.dict() for pred in brettspace_result.predictions]
+        combined_predictions = calculate_combined_predictions(brettearth_dicts, brettspace_dicts)
+        
+        combined_result = CombinedPrediction(
+            brettearth_result=brettearth_result,
+            brettspace_result=brettspace_result,
+            combined_predictions=combined_predictions,
+            summary=calculate_combined_summary(brettearth_result, brettspace_result, combined_predictions)
+        )
+        
+        return combined_result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"BRETTCOMBO calculation failed: {str(e)}")
+
+@router.post("/cymatic", response_model=CymaticData)
+async def generate_cymatic_visualization(
+    request: CymaticRequest
+):
+    try:
+        location = request.location
+        
+        brettearth_request = PredictionRequest(
+            location=location,
+            engine_type="BRETTEARTH"
+        )
+        
+        brettearth_result = await calculate_brettearth_prediction(brettearth_request)
+        
+        cymatic_data = generate_3d_wave_field(location, brettearth_result, request.day)
+        
+        return cymatic_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cymatic visualization failed: {str(e)}")
+
+def calculate_cmyk_model(brett_result: dict, magnetometer_result: dict, rgb_values: Optional[List[dict]] = None, location: Optional[LocationInput] = None) -> List[dict]:
+    predictions = []
+    
+    electromagnetic_weights = {
+        'SOLAR_VAR1': 0.12, 'SOLAR_VAR2': 0.10, 'SOLAR_VAR3': 0.08,
+        'GEOMAG_VAR1': 0.15, 'GEOMAG_VAR2': 0.12, 'GEOMAG_VAR3': 0.10,
+        'IONO_VAR1': 0.08, 'IONO_VAR2': 0.06,
+        'ATMOS_VAR1': 0.09, 'ATMOS_VAR2': 0.07,
+        'TECTONIC_VAR1': 0.03, 'TECTONIC_VAR2': 0.03
+    }
+    
+    lag_factors = {
+        'solar': 0.8,      # 48h sunspot lag: 1.0 - (48/24) * 0.1
+        'geomagnetic': 0.9625, # 6h geomagnetic lag: 1.0 - (6/24) * 0.15
+        'ionospheric': 0.92, # 24h ionospheric lag: 1.0 - (24/24) * 0.08
+        'atmospheric': 0.95  # Minimal atmospheric lag
+    }
+    
+    for i, prediction in enumerate(brett_result['predictions']):
+        if location and hasattr(location, 'latitude') and hasattr(location, 'longitude'):
+            base_tetrahedral_angle = 54.74 + (location.latitude * 0.1) + (location.longitude * 0.05)
+            if hasattr(prediction, 'chamber_factors'):
+                tetrahedral_angle = base_tetrahedral_angle + prediction.chamber_factors.get('tetrahedral_adjustment', 0)
+            else:
+                tetrahedral_angle = base_tetrahedral_angle
+        else:
+            tetrahedral_angle = 54.74
+        
+        if rgb_values and i < len(rgb_values):
+            red_solar = rgb_values[i]['red']      # Direct solar flux (SPACE source)
+            green_geomag = rgb_values[i]['green'] # Geomagnetic field (SPACE source)
+            blue_iono = rgb_values[i]['blue']    # Ionospheric coupling (SPACE source)
+            
+            solar_angle = prediction.get('solar_angle', 45)
+            ionospheric_coupling = prediction.get('ionospheric_coupling', 1.0)
+            
+            solar_weight = electromagnetic_weights['SOLAR_VAR1'] + electromagnetic_weights['SOLAR_VAR2'] + electromagnetic_weights['SOLAR_VAR3']
+            geomag_weight = electromagnetic_weights['GEOMAG_VAR1'] + electromagnetic_weights['GEOMAG_VAR2'] + electromagnetic_weights['GEOMAG_VAR3']
+            iono_weight = electromagnetic_weights['IONO_VAR1'] + electromagnetic_weights['IONO_VAR2']
+            
+            solar_freq = red_solar * 20.0  # Solar cycle frequency
+            geomag_freq = green_geomag * 15.0  # Geomagnetic frequency  
+            iono_freq = blue_iono * 10.0  # Ionospheric frequency
+            
+            solar_seismic_coupling = red_solar * math.cos(2 * math.pi * solar_freq / 20.0)
+            cyan = abs(solar_seismic_coupling) * lag_factors['solar'] * solar_weight * 100
+            
+            geomag_emf_coupling = green_geomag * math.sin(2 * math.pi * geomag_freq / 15.0)
+            magenta = abs(geomag_emf_coupling) * lag_factors['geomagnetic'] * geomag_weight * 100
+            
+            iono_atmos_coupling = blue_iono * math.cos(2 * math.pi * iono_freq / 10.0)
+            yellow = abs(iono_atmos_coupling) * lag_factors['ionospheric'] * iono_weight * 100
+            
+            space_coherence = (red_solar + green_geomag + blue_iono) / 3
+            phase_alignment = math.cos(2 * math.pi * (cyan/100 - magenta/100)) * math.cos(2 * math.pi * (magenta/100 - yellow/100))
+            complementary_interference = max(0.1, (1 + phase_alignment) / 2)
+            black = (cyan + magenta + yellow) * complementary_interference * space_coherence * 0.4
+        else:
+            resonance_base = prediction['resonance_factor'] * 100
+            magnetic_anomalies = magnetometer_result.get('analysis_summary', {}).get('total_anomalies', 0)
+            
+            cyan = resonance_base * (electromagnetic_weights['SOLAR_VAR1'] + electromagnetic_weights['SOLAR_VAR2']) * lag_factors['solar']
+            magenta = magnetic_anomalies * 10 * (electromagnetic_weights['GEOMAG_VAR1'] + electromagnetic_weights['GEOMAG_VAR2']) * lag_factors['geomagnetic']
+            yellow = prediction['predicted_magnitude'] * 10 * (electromagnetic_weights['IONO_VAR1'] + electromagnetic_weights['IONO_VAR2']) * lag_factors['ionospheric']
+            black = (cyan + magenta + yellow) * (electromagnetic_weights['TECTONIC_VAR1'] + electromagnetic_weights['TECTONIC_VAR2']) * 10
+        
+        cmyk_factor = (cyan + magenta + yellow + black) / 400
+        base_probability = prediction['earthquake_probability']
+        
+        # Apply tetrahedral correction to probability
+        tetrahedral_correction = 1.0 + (math.sin(math.radians(tetrahedral_angle)) * 0.1)
+        adjusted_probability = base_probability * (1 + cmyk_factor * 0.3) * tetrahedral_correction
+        adjusted_probability = max(0.1, min(95.0, adjusted_probability))
+        
+        predictions.append({
+            'day': prediction['day'],
+            'date': prediction['date'],
+            'probability_percent': round(adjusted_probability, 1),
+            'magnitude_estimate': prediction['predicted_magnitude'],
+            'risk_level': get_risk_level(adjusted_probability),
+            'confidence_level': prediction['confidence_level'],
+            'resonance_factor': prediction['resonance_factor'],
+            'tetrahedral_angle': round(tetrahedral_angle, 2),
+            'cmyk_values': {
+                'cyan': round(cyan, 1),
+                'magenta': round(magenta, 1),
+                'yellow': round(yellow, 1),
+                'black': round(black, 1)
+            },
+            'electromagnetic_weights': electromagnetic_weights,
+            'lag_factors': lag_factors
+        })
+    
+    return predictions
+
+def calculate_rgb_model(location: LocationInput, space_weather_data: dict) -> List[dict]:
+    predictions = []
+    current_date = datetime.utcnow()
+    
+    space_data = space_weather_data.get('data', [])
+    if not space_data:
+        space_data = [{'bulk_speed': 400, 'imf_magnitude': 5, 'proton_density': 5}]
+    
+    solar_weights = {'VAR1': 0.12, 'VAR2': 0.10, 'VAR3': 0.08}  # 30% total
+    geomag_weights = {'VAR1': 0.15, 'VAR2': 0.12, 'VAR3': 0.10}  # 37% total
+    iono_weights = {'VAR1': 0.08, 'VAR2': 0.06}  # 14% total
+    atmos_weights = {'VAR1': 0.09, 'VAR2': 0.07}  # 16% total
+    tectonic_weights = {'VAR1': 0.03, 'VAR2': 0.03}  # 6% total
+    
+    lag_corrections = {
+        'sunspot_lag': 0.8,    # 48h lag: 1.0 - (48/24) * 0.1
+        'solar_flux_lag': 0.9, # 24h lag: 1.0 - (24/24) * 0.1  
+        'geomagnetic_lag': 0.9625, # 6h lag: 1.0 - (6/24) * 0.15
+        'ionospheric_lag': 0.92  # 24h lag: 1.0 - (24/24) * 0.08
+    }
+    
+    if hasattr(location, 'latitude') and hasattr(location, 'longitude'):
+        tetrahedral_angle = 54.74 + (location.latitude * 0.1) + (location.longitude * 0.05)
+    else:
+        tetrahedral_angle = 54.74
+    
+    space_record = space_data[0] if space_data else {}
+    bulk_speed = space_record.get('bulk_speed', 400)
+    imf_magnitude = space_record.get('imf_magnitude', 5)
+    proton_density = space_record.get('proton_density', 5)
+    
+    solar_var1 = bulk_speed * solar_weights['VAR1'] * lag_corrections['sunspot_lag']
+    solar_var2 = (bulk_speed * 0.8) * solar_weights['VAR2'] * lag_corrections['solar_flux_lag']
+    solar_var3 = (bulk_speed * 0.6) * solar_weights['VAR3'] * lag_corrections['solar_flux_lag']
+    red_base = solar_var1 + solar_var2 + solar_var3
+    
+    geomag_var1 = imf_magnitude * 10 * geomag_weights['VAR1'] * lag_corrections['geomagnetic_lag']
+    geomag_var2 = (imf_magnitude * 8) * geomag_weights['VAR2'] * lag_corrections['geomagnetic_lag']
+    geomag_var3 = (imf_magnitude * 6) * geomag_weights['VAR3'] * lag_corrections['geomagnetic_lag']
+    green_base = geomag_var1 + geomag_var2 + geomag_var3
+    
+    iono_var1 = proton_density * 12 * iono_weights['VAR1'] * lag_corrections['ionospheric_lag']
+    iono_var2 = (proton_density * 8) * iono_weights['VAR2'] * lag_corrections['ionospheric_lag']
+    blue_base = iono_var1 + iono_var2
+    
+    atmospheric_contribution = (bulk_speed + imf_magnitude + proton_density) / 3 * (atmos_weights['VAR1'] + atmos_weights['VAR2'])
+    tectonic_contribution = math.sin(math.radians(tetrahedral_angle)) * (tectonic_weights['VAR1'] + tectonic_weights['VAR2']) * 100
+    
+    for day in range(1, 22):
+        prediction_date = current_date + timedelta(days=day)
+        
+        daily_solar_angle = tetrahedral_angle + (day * 0.5)
+        
+        daily_red = red_base * (1 + math.sin(math.radians(daily_solar_angle)) * 0.1) + atmospheric_contribution
+        daily_green = green_base * (1 + math.cos(math.radians(daily_solar_angle)) * 0.1) + tectonic_contribution
+        daily_blue = blue_base * (1 + math.sin(math.radians(daily_solar_angle * 2)) * 0.05)
+        
+        rgb_alignment = abs(daily_red - daily_green) + abs(daily_green - daily_blue) + abs(daily_blue - daily_red)
+        constructive_factor = 1.0 + (1.0 / (1.0 + rgb_alignment * 0.01))
+        
+        rgb_intensity = (daily_red + daily_green + daily_blue) / 3 * constructive_factor
+        probability = min(95.0, max(0.1, rgb_intensity * 0.6))
+        
+        magnitude_base = 4.0 + (rgb_intensity / 80.0) * 3.5
+        magnitude = min(8.5, max(3.0, magnitude_base))
+        
+        predictions.append({
+            'day': day,
+            'date': prediction_date.strftime('%Y-%m-%d'),
+            'probability_percent': round(probability, 1),
+            'magnitude_estimate': round(magnitude, 1),
+            'risk_level': get_risk_level(probability),
+            'confidence_level': 'medium',
+            'solar_angle': round(daily_solar_angle, 2),
+            'tetrahedral_angle': round(tetrahedral_angle, 2),
+            'constructive_factor': round(constructive_factor, 3),
+            'rgb_values': {
+                'red': round(daily_red, 1),
+                'green': round(daily_green, 1),
+                'blue': round(daily_blue, 1)
+            },
+            'electromagnetic_variables': {
+                'solar_vars': [solar_var1, solar_var2, solar_var3],
+                'geomag_vars': [geomag_var1, geomag_var2, geomag_var3],
+                'iono_vars': [iono_var1, iono_var2],
+                'atmospheric': atmospheric_contribution,
+                'tectonic': tectonic_contribution
+            },
+            'lag_corrections': lag_corrections
+        })
+    
+    return predictions
+
+def calculate_solar_resonance(location: LocationInput, space_data: List[dict], day: int) -> float:
+    if not space_data:
+        return 50.0
+    
+    recent_data = space_data[-24:]
+    
+    solar_wind_speeds = [d.get('bulk_speed', 400) for d in recent_data if d.get('bulk_speed')]
+    avg_speed = sum(solar_wind_speeds) / len(solar_wind_speeds) if solar_wind_speeds else 400
+    
+    base_resonance = (avg_speed - 300) / 10
+    
+    time_decay = max(0.1, 1.0 - (day * 0.05))
+    
+    return max(0, min(100, base_resonance * time_decay))
+
+def calculate_magnetic_resonance(location: LocationInput, space_data: List[dict], day: int) -> float:
+    if not space_data:
+        return 45.0
+    
+    recent_data = space_data[-24:]
+    
+    imf_magnitudes = [d.get('imf_magnitude', 5) for d in recent_data if d.get('imf_magnitude')]
+    avg_imf = sum(imf_magnitudes) / len(imf_magnitudes) if imf_magnitudes else 5
+    
+    base_resonance = avg_imf * 8
+    
+    latitude_factor = 1.0 + abs(location.latitude) / 90.0 * 0.3
+    time_decay = max(0.1, 1.0 - (day * 0.04))
+    
+    return max(0, min(100, base_resonance * latitude_factor * time_decay))
+
+def calculate_ionospheric_resonance(location: LocationInput, space_data: List[dict], day: int) -> float:
+    if not space_data:
+        return 40.0
+    
+    recent_data = space_data[-24:]
+    
+    proton_densities = [d.get('proton_density', 5) for d in recent_data if d.get('proton_density')]
+    avg_density = sum(proton_densities) / len(proton_densities) if proton_densities else 5
+    
+    base_resonance = avg_density * 6
+    
+    longitude_factor = 1.0 + abs(location.longitude) / 180.0 * 0.2
+    time_decay = max(0.1, 1.0 - (day * 0.06))
+    
+    return max(0, min(100, base_resonance * longitude_factor * time_decay))
+
+def calculate_refraction_factor(latitude: float, altitude_km: float) -> float:
+    base_refraction = 1.0
+    
+    altitude_factor = (altitude_km - 80) / 5.0 * 0.1
+    latitude_factor = abs(latitude) / 90.0 * 0.2
+    
+    return base_refraction + altitude_factor + latitude_factor
+
+def calculate_combined_predictions(cmyk_predictions: List[dict], rgb_predictions: List[dict]) -> List[dict]:
+    combined = []
+    
+    for i in range(min(len(cmyk_predictions), len(rgb_predictions))):
+        cmyk_pred = cmyk_predictions[i]
+        rgb_pred = rgb_predictions[i]
+        
+        # Quantum fusion of RGB and CMYK predictions
+        rgb_intensity = (rgb_pred['rgb_values']['red'] + rgb_pred['rgb_values']['green'] + rgb_pred['rgb_values']['blue']) / 3
+        cmyk_intensity = (cmyk_pred['cmyk_values']['cyan'] + cmyk_pred['cmyk_values']['magenta'] + cmyk_pred['cmyk_values']['yellow']) / 3
+        
+        coherence_factor = 1.0 - abs(rgb_intensity - cmyk_intensity) / max(rgb_intensity, cmyk_intensity, 1.0)
+        
+        rgb_weight = 0.4 + (coherence_factor * 0.2)
+        cmyk_weight = 1.0 - rgb_weight
+        
+        combined_probability = (
+            cmyk_pred['probability_percent'] * cmyk_weight + 
+            rgb_pred['probability_percent'] * rgb_weight
+        )
+        
+        combined_magnitude = (
+            cmyk_pred['magnitude_estimate'] * cmyk_weight + 
+            rgb_pred['magnitude_estimate'] * rgb_weight
+        )
+        
+        combined_pred = {
+            'day': cmyk_pred['day'],
+            'date': cmyk_pred['date'],
+            'probability_percent': round(combined_probability, 1),
+            'magnitude_estimate': round(combined_magnitude, 1),
+            'risk_level': get_risk_level(combined_probability),
+            'confidence_level': cmyk_pred['confidence_level'],
+            'quantum_coherence': round(coherence_factor, 3),
+            'rgb_weight': round(rgb_weight, 3),
+            'cmyk_weight': round(cmyk_weight, 3),
+            'rgb_values': rgb_pred['rgb_values'],
+            'cmyk_values': cmyk_pred['cmyk_values']
+        }
+        combined.append(combined_pred)
+    
+    return combined
+
+def generate_3d_wave_field(location: LocationInput, prediction_result: EngineResult, day: int) -> CymaticData:
+    import numpy as np
+    
+    grid_size = 50
+    num_layers = 36
+    
+    x = np.linspace(-5, 5, grid_size)
+    y = np.linspace(-5, 5, grid_size)
+    z = np.linspace(-2, 2, grid_size // 2)
+    X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
+    
+    wave_field = np.zeros_like(X)
+    phase_lock_points = []
+    
+    if day <= len(prediction_result.predictions):
+        current_prediction = prediction_result.predictions[day - 1]
+        earthquake_probability = current_prediction.probability_percent / 100.0
+        resonance_factor = current_prediction.resonance_factor or 0.5
+    else:
+        earthquake_probability = 0.1
+        resonance_factor = 0.1
+    
+    # Scale phase lock points to correlate with earthquake probability
+    num_phase_lock_points = max(1, int(num_layers * earthquake_probability * resonance_factor * 2.0))
+    
+    for layer in range(num_layers):
+        frequency = 0.1 + layer * 0.05
+        amplitude = 1.0 + layer * 0.1
+        phase = layer * 0.2
+        
+        r_xyz = np.sqrt(X**2 + Y**2 + Z**2)
+        layer_wave = amplitude * np.sin(frequency * r_xyz + phase) * earthquake_probability
+        
+        schumann_modulation = 1.0 + 0.2 * np.sin(7.83 * layer * 0.1)
+        layer_wave *= schumann_modulation
+        
+        wave_field += layer_wave
+        
+        if layer < num_phase_lock_points:
+            lock_x = 3 * np.cos(layer * 0.5)
+            lock_y = 3 * np.sin(layer * 0.5)
+            lock_z = np.sin(layer * 0.2)
+            phase_lock_points.append([lock_x, lock_y, lock_z, earthquake_probability])
+    
+    # Calculate resonance overlap based on actual earthquake probability
+    base_resonance = earthquake_probability * 100
+    resonance_overlap_percent = min(base_resonance * resonance_factor * 1.5, 100.0)
+    
+    alert_level = "CRITICAL" if resonance_overlap_percent > 40 else "HIGH" if resonance_overlap_percent > 20 else "NORMAL"
+    
+    return CymaticData(
+        wave_field=wave_field.tolist(),
+        phase_lock_points=phase_lock_points,
+        resonance_overlap_percent=round(resonance_overlap_percent, 1),
+        alert_level=alert_level,
+        day=day
+    )
+
+def calculate_space_summary(predictions: List[dict]) -> dict:
+    if not predictions:
+        return {}
+    
+    probabilities = [p['probability_percent'] for p in predictions]
+    magnitudes = [p['magnitude_estimate'] for p in predictions]
+    
+    return {
+        'max_probability': max(probabilities),
+        'avg_probability': sum(probabilities) / len(probabilities),
+        'max_magnitude': max(magnitudes),
+        'avg_magnitude': sum(magnitudes) / len(magnitudes),
+        'high_risk_days': len([p for p in predictions if p['risk_level'] in ['HIGH', 'ELEVATED']]),
+        'total_days': len(predictions)
+    }
+
+def calculate_combined_summary(brettearth: EngineResult, brettspace: EngineResult, combined: List[dict]) -> dict:
+    if not combined:
+        return {}
+    
+    probabilities = [p['probability_percent'] for p in combined]
+    magnitudes = [p['magnitude_estimate'] for p in combined]
+    
+    return {
+        'engines_used': ['BRETTEARTH', 'BRETTSPACE'],
+        'fusion_method': 'weighted_average',
+        'max_probability': max(probabilities),
+        'avg_probability': sum(probabilities) / len(probabilities),
+        'max_magnitude': max(magnitudes),
+        'avg_magnitude': sum(magnitudes) / len(magnitudes),
+        'high_risk_days': len([p for p in combined if p['risk_level'] in ['HIGH', 'ELEVATED']]),
+        'total_days': len(combined),
+        'brettearth_contribution': 60,
+        'brettspace_contribution': 40
+    }
+
+def get_risk_level(probability: float) -> str:
+    if probability >= 60: return "HIGH"
+    elif probability >= 40: return "ELEVATED"
+    elif probability >= 20: return "MODERATE"
+    else: return "LOW"
+
+def _determine_region_from_coordinates(latitude: float, longitude: float) -> str:
+    regions = {
+        'california': {'lat': 34.0522, 'lon': -118.2437, 'radius': 10},
+        'japan': {'lat': 35.6762, 'lon': 139.6503, 'radius': 10},
+        'turkey': {'lat': 41.0082, 'lon': 28.9784, 'radius': 10},
+        'chile': {'lat': -33.4489, 'lon': -70.6693, 'radius': 10},
+        'indonesia': {'lat': -6.2088, 'lon': 106.8456, 'radius': 10}
+    }
+    
+    for region_name, region_data in regions.items():
+        lat_diff = abs(latitude - region_data['lat'])
+        lon_diff = abs(longitude - region_data['lon'])
+        
+        if lat_diff <= region_data['radius'] and lon_diff <= region_data['radius']:
+            return region_name
+    
+    return 'california'

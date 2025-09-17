@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="page-title">BRETT Prediction Systems</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Dynamic title setting based on URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const titleElement = document.getElementById('page-title');
+      
+      if (urlParams.get('volcanic') === 'true') {
+        titleElement.textContent = 'BRETTVOLCANIC';
+      } else if (urlParams.get('earthquake') === 'true') {
+        titleElement.textContent = 'BRETTEARTHQUAKE';
+      } else {
+        titleElement.textContent = 'BRETT Prediction Systems';
+      }
+    </script>
+  </body>
+</html>
