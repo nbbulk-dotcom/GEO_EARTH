@@ -7,12 +7,19 @@ import VolcanicLandingPage from './components/VolcanicLandingPage'
 import VolcanicUI from './components/VolcanicUI'
 import MainInterface from './components/MainInterface'
 import VolcanicMainInterface from './components/VolcanicMainInterface'
+import LocationInputPage from './components/LocationInputPage'
+import EngineSelectionPage from './components/EngineSelectionPage'
+import PredictionDisplayPage from './components/PredictionDisplayPage'
+import CymaticVisualizationPage from './components/CymaticVisualizationPage'
 import './App.css'
+
+type PageType = 'landing' | 'location' | 'engine' | 'prediction' | 'cymatic'
 
 function App() {
   const [showMainInterface, setShowMainInterface] = useState(false)
   const [showVolcanicUI, setShowVolcanicUI] = useState(false)
   const [systemType, setSystemType] = useState<'earthquake' | 'volcanic' | 'unified'>('unified')
+  const [currentPage, setCurrentPage] = useState<PageType>('landing')
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -25,6 +32,7 @@ function App() {
       } else if (isEarthquake) {
       setSystemType('earthquake')
       setShowMainInterface(false)
+      setCurrentPage('landing')
       } else {
       setSystemType('unified')
       setShowMainInterface(false)
@@ -36,19 +44,21 @@ function App() {
     if (type === 'volcanic') {
       setShowVolcanicUI(true)
     } else {
-      setShowMainInterface(true)
+      setCurrentPage('location')
     }
   }
 
   const handleBackToLanding = () => {
     setShowMainInterface(false)
     setShowVolcanicUI(false)
+    setCurrentPage('landing')
   }
 
   const handleBackToUnified = () => {
     setSystemType('unified')
     setShowMainInterface(false)
     setShowVolcanicUI(false)
+    setCurrentPage('landing')
     window.history.pushState({}, '', window.location.pathname)
   }
 
@@ -62,6 +72,58 @@ function App() {
     setShowVolcanicUI(true)
   }
 
+  const handleNextPage = () => {
+    switch (currentPage) {
+      case 'location':
+        setCurrentPage('engine')
+        break
+      case 'engine':
+        setCurrentPage('prediction')
+        break
+      case 'prediction':
+        setCurrentPage('cymatic')
+        break
+    }
+  }
+
+  const handlePreviousPage = () => {
+    switch (currentPage) {
+      case 'location':
+        setCurrentPage('landing')
+        break
+      case 'engine':
+        setCurrentPage('location')
+        break
+      case 'prediction':
+        setCurrentPage('engine')
+        break
+      case 'cymatic':
+        setCurrentPage('prediction')
+        break
+    }
+  }
+
+  const handleChangeLocation = () => {
+    setCurrentPage('location')
+  }
+
+  const renderEarthquakeSystem = () => {
+    switch (currentPage) {
+      case 'landing':
+        return <LandingPage onEnterSystem={() => handleEnterSystem('earthquake')} onBackToUnified={handleBackToUnified} />
+      case 'location':
+        return <LocationInputPage onNext={handleNextPage} />
+      case 'engine':
+        return <EngineSelectionPage onNext={handleNextPage} />
+      case 'prediction':
+        return <PredictionDisplayPage onNext={handleNextPage} onChangeLocation={handleChangeLocation} />
+      case 'cymatic':
+        return <CymaticVisualizationPage onBack={handlePreviousPage} />
+      default:
+        return <LandingPage onEnterSystem={() => handleEnterSystem('earthquake')} onBackToUnified={handleBackToUnified} />
+    }
+  }
+
   return (
     <AuthProvider>
       <DataProvider>
@@ -71,7 +133,7 @@ function App() {
           ) : systemType === 'volcanic' && !showMainInterface && !showVolcanicUI ? (
             <VolcanicLandingPage onEnterSystem={() => handleEnterSystem('volcanic')} onBackToUnified={handleBackToUnified} />
           ) : systemType === 'earthquake' && !showMainInterface && !showVolcanicUI ? (
-            <LandingPage onEnterSystem={() => handleEnterSystem('earthquake')} onBackToUnified={handleBackToUnified} />
+            renderEarthquakeSystem()
           ) : systemType === 'volcanic' && showVolcanicUI && !showMainInterface ? (
             <VolcanicUI 
               onBackToLanding={handleBackToLanding}
