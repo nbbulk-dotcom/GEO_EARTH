@@ -263,7 +263,8 @@ def calculate_cmyk_model(brett_result: dict, magnetometer_result: dict, rgb_valu
             
             lat_adjustment = location.latitude * 0.1  # Latitude influence
             lon_adjustment = location.longitude * 0.05  # Longitude influence
-            tetrahedral_angle = base_angle + lat_adjustment + lon_adjustment
+            regional_modifier = get_regional_modifier(location.latitude, location.longitude)
+            tetrahedral_angle = (base_angle + lat_adjustment + lon_adjustment) * regional_modifier
             
             if hasattr(prediction, 'chamber_factors'):
                 tetrahedral_angle += prediction.chamber_factors.get('tetrahedral_adjustment', 0)
@@ -367,7 +368,8 @@ def calculate_rgb_model(location: LocationInput, space_weather_data: dict) -> Li
         
         lat_adjustment = location.latitude * 0.1  # Latitude influence
         lon_adjustment = location.longitude * 0.05  # Longitude influence
-        tetrahedral_angle = base_angle + lat_adjustment + lon_adjustment
+        regional_modifier = get_regional_modifier(location.latitude, location.longitude)
+        tetrahedral_angle = (base_angle + lat_adjustment + lon_adjustment) * regional_modifier
     else:
         tetrahedral_angle = 40.6525  # Average of 26.565° and 54.74°
     
@@ -637,19 +639,35 @@ def get_risk_level(probability: float) -> str:
     else: return "LOW"
 
 def _determine_region_from_coordinates(latitude: float, longitude: float) -> str:
-    regions = {
-        'california': {'lat': 34.0522, 'lon': -118.2437, 'radius': 10},
-        'japan': {'lat': 35.6762, 'lon': 139.6503, 'radius': 10},
-        'turkey': {'lat': 41.0082, 'lon': 28.9784, 'radius': 10},
-        'chile': {'lat': -33.4489, 'lon': -70.6693, 'radius': 10},
-        'indonesia': {'lat': -6.2088, 'lon': 106.8456, 'radius': 10}
+    """Determine geographical region from coordinates for regional modifiers"""
+    if 35 <= latitude <= 70 and -10 <= longitude <= 40:
+        return "Europe"
+    elif -35 <= latitude <= 35 and -20 <= longitude <= 50:
+        return "Africa"
+    elif 10 <= latitude <= 70 and 25 <= longitude <= 180:
+        return "Asia"
+    elif -60 <= latitude <= 70 and -170 <= longitude <= -30:
+        return "Americas"
+    elif 10 <= latitude <= 40 and 25 <= longitude <= 65:
+        return "Middle East"
+    elif -50 <= latitude <= 10 and 110 <= longitude <= 180:
+        return "Oceania"
+    elif latitude >= 66.5:
+        return "Arctic"
+    else:
+        return "Unknown"
+
+def get_regional_modifier(latitude: float, longitude: float) -> float:
+    """Get regional modifier for harmonic amplification calculations"""
+    region = _determine_region_from_coordinates(latitude, longitude)
+    regional_modifiers = {
+        "Europe": 1.0,
+        "Africa": 1.1,
+        "Asia": 0.9,
+        "Americas": 1.2,
+        "Middle East": 1.05,
+        "Oceania": 0.95,
+        "Arctic": 0.8,
+        "Unknown": 1.0
     }
-    
-    for region_name, region_data in regions.items():
-        lat_diff = abs(latitude - region_data['lat'])
-        lon_diff = abs(longitude - region_data['lon'])
-        
-        if lat_diff <= region_data['radius'] and lon_diff <= region_data['radius']:
-            return region_name
-    
-    return 'california'
+    return regional_modifiers.get(region, 1.0)
