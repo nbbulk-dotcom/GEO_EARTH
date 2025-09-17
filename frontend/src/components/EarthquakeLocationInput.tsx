@@ -106,7 +106,7 @@ const EarthquakeLocationInput: React.FC = () => {
           <CheckCircle className="w-8 h-8 text-green-400 mr-3" />
           <h2 className="text-2xl font-semibold text-white">Earthquake Location Confirmed</h2>
         </div>
-        <p className="text-gray-300 mb-2">Earthquake monitoring location has been set successfully.</p>
+        <p className="text-slate-300 mb-2">Earthquake monitoring location has been set successfully.</p>
         <button
           onClick={() => setIsConfirmed(false)}
           className="text-yellow-400 hover:text-yellow-300 underline"
@@ -119,9 +119,9 @@ const EarthquakeLocationInput: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-6 flex items-center text-white">
+      <h2 className="text-2xl font-semibold mb-6 flex items-center text-slate-100">
         <MapPin className="w-6 h-6 mr-3 text-yellow-400" />
-        Earthquake Location Input and Confirmation
+        Location Input and Confirmation
       </h2>
 
       <div className="mb-6">
@@ -130,8 +130,8 @@ const EarthquakeLocationInput: React.FC = () => {
             onClick={() => setInputType('coordinates')}
             className={`px-4 py-2 rounded-lg transition-colors ${
               inputType === 'coordinates'
-                ? 'bg-yellow-600 text-black'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ? 'bg-yellow-500 text-black font-semibold'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
             Coordinates
@@ -140,8 +140,8 @@ const EarthquakeLocationInput: React.FC = () => {
             onClick={() => setInputType('city')}
             className={`px-4 py-2 rounded-lg transition-colors ${
               inputType === 'city'
-                ? 'bg-yellow-600 text-black'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ? 'bg-yellow-500 text-black font-semibold'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
             City/Country
@@ -162,7 +162,7 @@ const EarthquakeLocationInput: React.FC = () => {
         {inputType === 'coordinates' && (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
                 Latitude
               </label>
               <input
@@ -171,12 +171,12 @@ const EarthquakeLocationInput: React.FC = () => {
                 value={latitude}
                 onChange={(e) => setLatitude(e.target.value)}
                 placeholder="e.g., 40.7128"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-yellow-400 focus:outline-none"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
                 Longitude
               </label>
               <input
@@ -185,7 +185,7 @@ const EarthquakeLocationInput: React.FC = () => {
                 value={longitude}
                 onChange={(e) => setLongitude(e.target.value)}
                 placeholder="e.g., -74.0060"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-yellow-400 focus:outline-none"
                 required
               />
             </div>
@@ -195,7 +195,7 @@ const EarthquakeLocationInput: React.FC = () => {
         {inputType === 'city' && (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
                 City
               </label>
               <input
@@ -203,12 +203,12 @@ const EarthquakeLocationInput: React.FC = () => {
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="e.g., New York"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-yellow-400 focus:outline-none"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
                 Country (Optional)
               </label>
               <input
@@ -216,20 +216,20 @@ const EarthquakeLocationInput: React.FC = () => {
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 placeholder="e.g., United States"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-yellow-400 focus:outline-none"
               />
             </div>
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-slate-300 mb-2">
             Monitoring Radius
           </label>
           <select
             value={radiusKm}
             onChange={(e) => setRadiusKm(parseInt(e.target.value))}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
           >
             <option value={100}>100 km</option>
             <option value={200}>200 km</option>
@@ -248,7 +248,7 @@ const EarthquakeLocationInput: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center px-4 py-3 bg-yellow-600 text-black font-semibold rounded-lg hover:bg-yellow-500 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center px-4 py-3 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition-colors disabled:opacity-50"
           >
             {isLoading ? (
               <>

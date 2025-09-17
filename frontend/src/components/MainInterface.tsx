@@ -141,41 +141,39 @@ const MainInterface: React.FC<MainInterfaceProps> = ({ onBackToLanding: _onBackT
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white">
+    <div className="min-h-screen bg-slate-900 text-white">
       <div className="container mx-auto px-6 py-8">
         <header className="text-center mb-12">
-          <h1 className="text-5xl font-light mb-4 tracking-wider">
+          <h1 className="text-4xl font-semibold mb-4 text-slate-100">
             BRETT System Interface
           </h1>
-          <p className="text-xl text-gray-300">
+          <p className="text-lg text-slate-300 mb-6">
             Geological and Electromagnetic Earthquake Prediction Platform
           </p>
           
           <div className="mt-6 flex justify-center items-center space-x-8 text-sm">
             <div className="flex items-center space-x-2">
               <div className={`w-3 h-3 rounded-full ${isAuthenticated ? 'bg-green-400' : 'bg-red-400'}`}></div>
-              <span>Authentication: {isAuthenticated ? 'Active' : 'Inactive'}</span>
+              <span className="text-slate-300">Authentication: {isAuthenticated ? 'Active' : 'Inactive'}</span>
             </div>
             
             <div className="flex items-center space-x-2">
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-yellow-400' : 'text-gray-400'}`} />
-              <span>Next Refresh: {formatTimeUntilRefresh()}</span>
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-yellow-400' : 'text-slate-400'}`} />
+              <span className="text-slate-300">Next Refresh: {formatTimeUntilRefresh()}</span>
             </div>
             
             {lastRefresh && (
-              <div className="text-gray-400">
+              <div className="text-slate-400">
                 Last Update: {new Date(lastRefresh).toLocaleTimeString()}
               </div>
             )}
-            
           </div>
-          
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <div className="lg:col-span-1">
-            <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
-              <h2 className="text-xl font-semibold mb-6 flex items-center">
+            <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-slate-700/50">
+              <h2 className="text-lg font-semibold mb-6 flex items-center text-slate-100">
                 <MapPin className="w-5 h-5 mr-2 text-yellow-400" />
                 System Steps
               </h2>
@@ -189,12 +187,12 @@ const MainInterface: React.FC<MainInterfaceProps> = ({ onBackToLanding: _onBackT
                   return (
                     <div
                       key={step.id}
-                      className={`p-4 rounded-xl border transition-all duration-300 ${
+                      className={`p-4 rounded-lg border transition-all duration-300 ${
                         step.active
                           ? 'border-yellow-400/50 bg-yellow-400/10'
                           : step.completed
                           ? 'border-green-400/50 bg-green-400/10'
-                          : 'border-gray-600/50 bg-gray-800/20'
+                          : 'border-slate-600/50 bg-slate-800/20'
                       }`}
                     >
                       <div className="flex items-start space-x-3">
@@ -223,16 +221,16 @@ const MainInterface: React.FC<MainInterfaceProps> = ({ onBackToLanding: _onBackT
           </div>
 
           <div className="lg:col-span-3 space-y-8">
-                {/* Step 1: Location Input - Only show when step 1 is active */}
+                {/* Step 1: Location Input */}
                 {steps[0]?.active && (
-                  <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-8 border border-white/10">
+                  <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-8 border border-slate-700/50">
                     <EarthquakeLocationInput />
                   </div>
                 )}
 
-                {/* Step 2: Data Sources - Only show when step 2 is active */}
+                {/* Step 2: Data Sources */}
                 {steps[1]?.active && (
-                  <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-8 border border-white/10">
+                  <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-8 border border-slate-700/50">
                     <div className="mb-6 p-4 bg-blue-900/30 border border-blue-500/50 rounded-lg">
                       <h4 className="text-lg font-semibold text-blue-200 mb-2">📡 Step 2: Data Source Refresh Required</h4>
                       <p className="text-blue-100 text-sm">
@@ -243,11 +241,11 @@ const MainInterface: React.FC<MainInterfaceProps> = ({ onBackToLanding: _onBackT
                   </div>
                 )}
 
-                {/* Step 3: EMF Data Source Selection - Only show when step 3 is active */}
+                {/* Step 3: EMF Data Source Selection */}
                 {steps[2]?.active && (
-                  <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-8 border border-white/10">
-                    <h3 className="text-xl font-semibold mb-4">EMF Data Source Selection</h3>
-                    <p className="text-gray-300">Review and confirm electromagnetic data sources for analysis.</p>
+                  <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-8 border border-slate-700/50">
+                    <h3 className="text-xl font-semibold mb-4 text-slate-100">EMF Data Source Selection</h3>
+                    <p className="text-slate-300">Review and confirm electromagnetic data sources for analysis.</p>
                     <div className="mt-6">
                       <button
                         onClick={() => {
@@ -259,7 +257,7 @@ const MainInterface: React.FC<MainInterfaceProps> = ({ onBackToLanding: _onBackT
                             return newSteps;
                           });
                         }}
-                        className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all duration-300"
+                        className="px-6 py-3 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition-all duration-200"
                       >
                         Confirm Data Sources
                       </button>
@@ -279,54 +277,54 @@ const MainInterface: React.FC<MainInterfaceProps> = ({ onBackToLanding: _onBackT
                     
                     {/* Location Information Block */}
                     {location && (
-                      <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-6 border border-white/10 mb-6">
-                        <h3 className="text-lg font-semibold mb-4 flex items-center text-white">
+                      <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-slate-700/50 mb-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center text-slate-100">
                           <MapPin className="w-5 h-5 mr-2 text-yellow-400" />
                           Current Analysis Location
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="bg-gray-800/50 rounded-lg p-4">
-                            <div className="text-sm text-gray-400 mb-1">Location</div>
-                            <div className="text-white font-medium">{location.location_name}</div>
+                          <div className="bg-slate-700/50 rounded-lg p-4">
+                            <div className="text-sm text-slate-400 mb-1">Location</div>
+                            <div className="text-slate-100 font-medium">{location.location_name}</div>
                           </div>
-                          <div className="bg-gray-800/50 rounded-lg p-4">
-                            <div className="text-sm text-gray-400 mb-1">Coordinates</div>
-                            <div className="text-white font-medium">
+                          <div className="bg-slate-700/50 rounded-lg p-4">
+                            <div className="text-sm text-slate-400 mb-1">Coordinates</div>
+                            <div className="text-slate-100 font-medium">
                               {location.latitude.toFixed(4)}°, {location.longitude.toFixed(4)}°
                             </div>
                           </div>
-                          <div className="bg-gray-800/50 rounded-lg p-4">
-                            <div className="text-sm text-gray-400 mb-1">Monitoring Radius</div>
-                            <div className="text-white font-medium">{location.radius_km} km</div>
+                          <div className="bg-slate-700/50 rounded-lg p-4">
+                            <div className="text-sm text-slate-400 mb-1">Monitoring Radius</div>
+                            <div className="text-slate-100 font-medium">{location.radius_km} km</div>
                           </div>
                         </div>
                       </div>
                     )}
                     
-                    <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-8 border border-white/10">
+                    <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-8 border border-slate-700/50">
                       <EngineSelection />
                     </div>
                   </>
                 )}
 
-                {/* Step 5: Results - Only show when step 5 is active */}
+                {/* Step 5: Results */}
                 {steps[4]?.active && predictions.length > 0 && (
                   <>
-                    <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-8 border border-white/10">
+                    <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-8 border border-slate-700/50">
                       <PredictionDisplay />
                     </div>
 
                     <div className="flex justify-center">
                       <button
                         onClick={() => setShowCymatic(!showCymatic)}
-                        className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:from-purple-500 hover:to-blue-500 transition-all duration-300 transform hover:scale-105"
+                        className="px-8 py-3 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition-all duration-200"
                       >
                         {showCymatic ? 'Hide' : 'Show'} 3D Cymatic Visualization
                       </button>
                     </div>
 
                     {showCymatic && (
-                      <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-8 border border-white/10">
+                      <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-8 border border-slate-700/50">
                         <CymaticVisualization />
                       </div>
                     )}
@@ -350,7 +348,7 @@ const MainInterface: React.FC<MainInterfaceProps> = ({ onBackToLanding: _onBackT
                               return newSteps;
                             });
                           }}
-                          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all duration-300"
+                          className="px-6 py-3 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition-all duration-200"
                         >
                           Change Location
                         </button>
