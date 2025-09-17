@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRETT System - Location Input</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e293b 0%, #1e40af 50%, #000000 100%);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .back-button {
+            color: #fbbf24;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(to right, #fbbf24, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #cbd5e1;
+            margin-bottom: 2rem;
+        }
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            overflow-x: auto;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+            min-width: 200px;
+        }
+        .step.active {
+            background: rgba(251, 191, 36, 0.2);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        }
+        .step-icon {
+            margin-right: 0.75rem;
+            color: #fbbf24;
+        }
+        .main-content {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            border: 1px solid #475569;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+        .form-section {
+            margin-bottom: 2rem;
+        }
+        .form-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .toggle-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .toggle-btn {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #475569;
+            background: rgba(30, 41, 59, 0.5);
+            color: white;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .toggle-btn.active {
+            background: #fbbf24;
+            color: black;
+            border-color: #fbbf24;
+        }
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        .input-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #cbd5e1;
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #475569;
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 1rem;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #fbbf24;
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+        }
+        .radius-section {
+            margin-bottom: 2rem;
+        }
+        .radius-dropdown {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #475569;
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 1rem;
+        }
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 1rem;
+        }
+        .btn-primary {
+            background: linear-gradient(to right, #fbbf24, #f97316);
+            color: black;
+        }
+        .btn-secondary {
+            background: rgba(75, 85, 99, 0.8);
+            color: white;
+            border: 1px solid #6b7280;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="#" class="back-button">← Back to Landing</a>
+            <div>
+                <h1 class="title">BRETT System Interface</h1>
+                <p class="subtitle">12-Dimensional GAL-CRM Framework v4.0</p>
+            </div>
+            <div style="text-align: right; font-size: 0.875rem; color: #94a3b8;">
+                <p>User: Guest</p>
+                <p>Session Active</p>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="step active">
+                <span class="step-icon">📍</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.875rem;">Location Input</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Set monitoring location and radius</p>
+                </div>
+            </div>
+            <div style="width: 2rem; height: 1px; background: #475569; margin: auto;"></div>
+            <div class="step">
+                <span class="step-icon">🗄️</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.875rem;">Data Sources</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Verify data source connectivity</p>
+                </div>
+            </div>
+            <div style="width: 2rem; height: 1px; background: #475569; margin: auto;"></div>
+            <div class="step">
+                <span class="step-icon">⚙️</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.875rem;">Engine Selection</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Choose prediction engine</p>
+                </div>
+            </div>
+            <div style="width: 2rem; height: 1px; background: #475569; margin: auto;"></div>
+            <div class="step">
+                <span class="step-icon">📊</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.875rem;">Engine Activation</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Deploy selected engine</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="form-section">
+                <h2 class="form-title">
+                    📍 Location Configuration
+                </h2>
+                
+                <div class="toggle-buttons">
+                    <button class="toggle-btn active">Coordinates</button>
+                    <button class="toggle-btn">City</button>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Latitude</label>
+                    <input type="number" class="input-field" placeholder="40.7128" value="40.7128" step="any">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Longitude</label>
+                    <input type="number" class="input-field" placeholder="-74.0060" value="-74.0060" step="any">
+                </div>
+
+                <div class="radius-section">
+                    <label class="input-label">Monitoring Radius</label>
+                    <select class="radius-dropdown">
+                        <option value="100">100 km</option>
+                        <option value="200">200 km</option>
+                        <option value="500" selected>500 km</option>
+                        <option value="1000">1000 km</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary">Reset to Default</button>
+                    <button class="btn btn-primary">Confirm Location</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

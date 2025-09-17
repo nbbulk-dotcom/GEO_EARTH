@@ -16,17 +16,10 @@ async def get_data_sources_status():
         
         sources_status = []
         for source_name, source_info in status_data['sources'].items():
-            last_update_str = None
-            if source_info['last_update']:
-                if isinstance(source_info['last_update'], datetime):
-                    last_update_str = source_info['last_update'].isoformat()
-                else:
-                    last_update_str = source_info['last_update']
-            
             sources_status.append(DataSourceStatus(
                 source_name=source_name,
                 status=source_info['status'],
-                last_update=last_update_str,
+                last_update=source_info['last_update'],
                 error_message=None,
                 reliability_percent=source_info['reliability']
             ))
@@ -87,17 +80,10 @@ async def get_system_status():
             if is_error:
                 error_count += 1
             
-            last_update_str = None
-            if source_info['last_update']:
-                if isinstance(source_info['last_update'], datetime):
-                    last_update_str = source_info['last_update'].isoformat()
-                else:
-                    last_update_str = source_info['last_update']
-            
             data_sources.append(DataSourceStatus(
                 source_name=source_name,
                 status=source_info['status'],
-                last_update=last_update_str,
+                last_update=source_info['last_update'],
                 error_message="Data source unavailable" if is_error else None,
                 reliability_percent=source_info['reliability']
             ))

@@ -20,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(prediction.router, prefix="/api", tags=["earthquake-prediction"])
+app.include_router(prediction.router, prefix="/api/prediction", tags=["earthquake-prediction"])
 app.include_router(data.router, prefix="/api", tags=["data-sources"])
 app.include_router(location.router, prefix="/api/location", tags=["location"])
 

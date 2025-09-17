@@ -11,33 +11,35 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950">
       <style>{`
         .main-container {
-          background: rgba(30, 41, 59, 0.95);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(148, 163, 184, 0.2);
-          border-radius: 16px;
+          background: rgba(30, 41, 59, 0.9);
+          backdrop-filter: blur(15px);
+          border: 1px solid rgba(148, 163, 184, 0.3);
+          border-radius: 20px;
           padding: 3rem;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
           max-width: 900px;
           margin: 2rem auto;
         }
         .enter-btn {
-          background: #fbbf24;
-          color: #000;
+          background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+          color: white;
           border: none;
           padding: 1rem 2rem;
-          border-radius: 8px;
+          border-radius: 12px;
           font-size: 1.125rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
+          box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
           margin: 2rem 0;
         }
         .enter-btn:hover {
-          background: #f59e0b;
-          transform: translateY(-1px);
+          transform: translateY(-2px);
+          box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+          background: linear-gradient(135deg, #2563eb, #1e40af);
         }
         .features {
           display: flex;
@@ -45,7 +47,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem }) => {
           gap: 0.5rem;
           margin: 1.5rem 0;
           font-size: 0.875rem;
-          color: #cbd5e1;
+          color: #94a3b8;
           text-align: center;
         }
         .pdf-section {
@@ -96,7 +98,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterSystem }) => {
       
       <div className="flex items-center justify-center min-h-screen p-8">
         <div className="main-container text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-slate-100">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
             BRETT EARTHQUAKE SYSTEM
           </h1>
           <h2 className="text-xl md:text-2xl font-semibold mb-6 text-slate-200">

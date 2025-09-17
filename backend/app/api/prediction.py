@@ -61,10 +61,11 @@ async def calculate_brettearth_prediction(
         
         engine_result = EngineResult(
             engine_type="BRETTEARTH",
+            location=location,
             predictions=cmyk_predictions,
             summary=brett_result['summary'],
-            calculation_time=datetime.utcnow(),
-            data_sources_used=["USGS", "EMSC", "INTERMAGNET", "NOAA"]
+            processing_time=1.5,
+            timestamp=datetime.utcnow()
         )
         
         return engine_result

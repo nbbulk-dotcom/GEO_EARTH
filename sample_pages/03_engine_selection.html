@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRETT System - Engine Selection</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e293b 0%, #1e40af 50%, #000000 100%);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .back-button {
+            color: #fbbf24;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(to right, #fbbf24, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #cbd5e1;
+            margin-bottom: 2rem;
+        }
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            overflow-x: auto;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+            min-width: 200px;
+        }
+        .step.active {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.2);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        }
+        .step-icon {
+            margin-right: 0.75rem;
+        }
+        .step-icon.completed {
+            color: #22c55e;
+        }
+        .step-icon.active {
+            color: #fbbf24;
+        }
+        .main-content {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            border: 1px solid #475569;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #cbd5e1;
+        }
+        .engines-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .engine-card {
+            position: relative;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 2px solid #475569;
+            background: rgba(30, 41, 59, 0.5);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .engine-card:hover {
+            border-color: #64748b;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        .engine-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .engine-icon {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-right: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .earth-engine .engine-icon {
+            background: linear-gradient(to right, #22c55e, #10b981);
+        }
+        .combo-engine .engine-icon {
+            background: linear-gradient(to right, #8b5cf6, #6366f1);
+        }
+        .engine-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: white;
+        }
+        .engine-desc {
+            color: #cbd5e1;
+            font-size: 0.875rem;
+        }
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 1rem 0;
+        }
+        .features-list li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            color: #cbd5e1;
+            font-size: 0.875rem;
+        }
+        .features-list li::before {
+            content: "✓";
+            color: #22c55e;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .deploy-button {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .earth-engine .deploy-button {
+            background: linear-gradient(to right, #22c55e, #10b981);
+            color: white;
+        }
+        .combo-engine .deploy-button {
+            background: linear-gradient(to right, #8b5cf6, #6366f1);
+            color: white;
+        }
+        .deploy-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        .comparison-section {
+            background: rgba(30, 58, 138, 0.3);
+            border: 1px solid #3b82f6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .comparison-title {
+            font-weight: 600;
+            color: #93c5fd;
+            margin-bottom: 0.5rem;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            font-size: 0.875rem;
+        }
+        .comparison-item h5 {
+            font-weight: 500;
+            color: white;
+            margin-bottom: 0.25rem;
+        }
+        .comparison-item p {
+            color: #cbd5e1;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="#" class="back-button">← Back to Landing</a>
+            <div>
+                <h1 class="title">BRETT System Interface</h1>
+                <p class="subtitle">12-Dimensional GAL-CRM Framework v4.0</p>
+            </div>
+            <div style="text-align: right; font-size: 0.875rem; color: #94a3b8;">
+                <p>User: Guest</p>
+                <p>Session Active</p>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="step">
+                <span class="step-icon completed">✓</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.875rem;">Location Input</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Set monitoring location and radius</p>
+                </div>
+            </div>
+            <div style="width: 2rem; height: 1px; background: #22c55e; margin: auto;"></div>
+            <div class="step">
+                <span class="step-icon completed">✓</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.875rem;">Data Sources</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Verify data source connectivity</p>
+                </div>
+            </div>
+            <div style="width: 2rem; height: 1px; background: #22c55e; margin: auto;"></div>
+            <div class="step active">
+                <span class="step-icon active">⚙️</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.875rem;">Engine Selection</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Choose prediction engine</p>
+                </div>
+            </div>
+            <div style="width: 2rem; height: 1px; background: #475569; margin: auto;"></div>
+            <div class="step">
+                <span class="step-icon">📊</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.875rem;">Engine Activation</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Deploy selected engine</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <h2 class="section-title">
+                ⚙️ Engine Selection
+            </h2>
+
+            <div class="engines-grid">
+                <div class="engine-card earth-engine">
+                    <div class="engine-header">
+                        <div class="engine-icon">🌍</div>
+                        <div>
+                            <h3 class="engine-title">BRETTEARTH</h3>
+                            <p class="engine-desc">Earth-based seismic analysis using terrestrial data sources</p>
+                        </div>
+                    </div>
+
+                    <ul class="features-list">
+                        <li>Terrestrial seismic monitoring</li>
+                        <li>Local geological analysis</li>
+                        <li>Regional fault mapping</li>
+                        <li>Ground-based sensors</li>
+                    </ul>
+
+                    <button class="deploy-button">
+                        ⚡ Activate BRETTEARTH
+                    </button>
+                </div>
+
+                <div class="engine-card combo-engine">
+                    <div class="engine-header">
+                        <div class="engine-icon">🚀</div>
+                        <div>
+                            <h3 class="engine-title">BRETTCOMBO</h3>
+                            <p class="engine-desc">Combined Earth and Space analysis for comprehensive prediction</p>
+                        </div>
+                    </div>
+
+                    <ul class="features-list">
+                        <li>Satellite data integration</li>
+                        <li>Ionospheric monitoring</li>
+                        <li>Solar activity correlation</li>
+                        <li>Multi-dimensional analysis</li>
+                    </ul>
+
+                    <button class="deploy-button">
+                        ⚡ Activate BRETTCOMBO
+                    </button>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <h4 class="comparison-title">Engine Comparison</h4>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <h5>BRETTEARTH</h5>
+                        <p>Focuses on terrestrial seismic data with high accuracy for local events. Best for regional earthquake prediction and immediate threat assessment.</p>
+                    </div>
+                    <div class="comparison-item">
+                        <h5>BRETTCOMBO</h5>
+                        <p>Combines Earth and space-based data for comprehensive analysis. Provides broader context and long-term prediction capabilities.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
