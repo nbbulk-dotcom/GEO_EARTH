@@ -9,6 +9,7 @@ pydantic==1.10.16
 requests==2.28.2
 urllib3==1.26.18
 six==1.16.0
+beautifulsoup4==4.12.2
 
 # Database & Cache
 psycopg2-binary==2.9.9
