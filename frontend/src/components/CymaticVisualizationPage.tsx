@@ -1,639 +1,461 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
-import * as THREE from 'three';
-import { AlertTriangle } from 'lucide-react';
-import axios from 'axios';
-import { useData } from '../contexts/DataContext';
-
-interface CymaticData {
-  wave_field: number[][][];
-  phase_lock_points: number[][];
-  resonance_overlap_percent: number;
-  alert_level: string;
-  day: number;
-}
+import React, { useState } from 'react';
 
 interface CymaticVisualizationPageProps {
   onBack: () => void;
 }
 
-const WaveField: React.FC<{ data: CymaticData; time: number; waveAmplitude: number; frequencyRange: [number, number]; visualizationMode: string }> = ({ 
-  data, 
-  time, 
-  waveAmplitude, 
-  frequencyRange, 
-  visualizationMode 
-}) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const pointsRef = useRef<THREE.Points>(null);
-
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = time * 0.1;
-      meshRef.current.rotation.x = Math.sin(time * 0.05) * 0.1;
-    }
-    
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y = time * 0.05;
-    }
-  });
-
-  const waveGeometry = React.useMemo(() => {
-    const geometry = new THREE.PlaneGeometry(10, 10, 49, 49);
-    const positions = geometry.attributes.position.array as Float32Array;
-    
-    if (data.wave_field && data.wave_field.length > 0) {
-      for (let i = 0; i < positions.length; i += 3) {
-        const x = Math.floor((positions[i] + 5) * 5);
-        const y = Math.floor((positions[i + 1] + 5) * 5);
-        
-        if (x >= 0 && x < 50 && y >= 0 && y < 50 && data.wave_field[x] && data.wave_field[x][y]) {
-          const waveValue = data.wave_field[x][y][0] || 0;
-          const frequency = frequencyRange[0] + (frequencyRange[1] - frequencyRange[0]) * Math.random();
-          positions[i + 2] = waveValue * waveAmplitude + Math.sin(time * frequency + x * 0.1 + y * 0.1) * 0.5;
-        }
-      }
-      geometry.attributes.position.needsUpdate = true;
-    }
-    
-    return geometry;
-  }, [data.wave_field, time, waveAmplitude, frequencyRange]);
-
-  const phaseLockPoints = React.useMemo(() => {
-    if (!data.phase_lock_points) return [];
-    
-    return data.phase_lock_points.map((point, index) => (
-      <mesh key={index} position={[point[0], point[1], point[2]]}>
-        <sphereGeometry args={[0.1, 8, 8]} />
-        <meshBasicMaterial 
-          color={data.alert_level === 'CRITICAL' ? '#ff0000' : '#ffff00'} 
-          transparent 
-          opacity={0.8}
-        />
-      </mesh>
-    ));
-  }, [data.phase_lock_points, data.alert_level]);
-
-  const getMaterialColor = () => {
-    switch (visualizationMode) {
-      case 'seismic':
-        return data.alert_level === 'CRITICAL' ? '#ff4444' : '#4444ff';
-      case 'electromagnetic':
-        return data.alert_level === 'CRITICAL' ? '#ff6644' : '#44ff66';
-      case 'harmonic':
-        return data.alert_level === 'CRITICAL' ? '#ff44ff' : '#ffff44';
-      default:
-        return data.alert_level === 'CRITICAL' ? '#ff4444' : '#4444ff';
-    }
-  };
-
-  return (
-    <group>
-      <mesh ref={meshRef} geometry={waveGeometry}>
-        <meshPhongMaterial 
-          color={getMaterialColor()}
-          wireframe 
-          transparent 
-          opacity={0.7}
-        />
-      </mesh>
-      
-      {phaseLockPoints}
-      
-      <Text
-        position={[0, 6, 0]}
-        fontSize={0.5}
-        color={data.alert_level === 'CRITICAL' ? '#ff0000' : '#ffffff'}
-        anchorX="center"
-        anchorY="middle"
-      >
-        Resonance Overlap: {data.resonance_overlap_percent.toFixed(1)}%
-      </Text>
-      
-      {data.alert_level === 'CRITICAL' && (
-        <Text
-          position={[0, 5, 0]}
-          fontSize={0.8}
-          color="#ff0000"
-          anchorX="center"
-          anchorY="middle"
-        >
-          🚨 RED ALERT 🚨
-        </Text>
-      )}
-    </group>
-  );
-};
-
 const CymaticVisualizationPage: React.FC<CymaticVisualizationPageProps> = ({ onBack }) => {
-  const { location } = useData();
-  const [cymaticData, setCymaticData] = useState<CymaticData | null>(null);
   const [selectedDay, setSelectedDay] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [time, setTime] = useState(0);
-  const [alertSound, setAlertSound] = useState(false);
-  const [soundEnabled] = useState(true);
-  
-  const [waveAmplitude, setWaveAmplitude] = useState(2.0);
-  const [frequencyRange, setFrequencyRange] = useState<[number, number]>([0.1, 1.0]);
-  const [visualizationMode, setVisualizationMode] = useState('seismic');
-
-  const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000';
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTime(prev => prev + 0.016);
-    }, 16);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (location) {
-      fetchCymaticData(selectedDay);
-    }
-  }, [location, selectedDay]);
-
-  useEffect(() => {
-    if (cymaticData?.alert_level === 'CRITICAL' && soundEnabled && !alertSound) {
-      setAlertSound(true);
-      playAlertSound();
-    } else if (cymaticData?.alert_level !== 'CRITICAL') {
-      setAlertSound(false);
-    }
-  }, [cymaticData?.alert_level, soundEnabled]);
-
-  const fetchCymaticData = async (day: number) => {
-    if (!location) return;
-    
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      const requestData = {
-        location: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          radius_km: location.radius_km
-        },
-        day: day
-      };
-      
-      const response = await axios.post(`${API_BASE_URL}/api/prediction/cymatic`, requestData, {
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        timeout: 30000
-      });
-      
-      if (response.data && typeof response.data.resonance_overlap_percent === 'number') {
-        setCymaticData(response.data);
-      } else {
-        setError('Invalid data received from server');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to fetch cymatic data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const playAlertSound = () => {
-    if (!soundEnabled) return;
-    
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.5);
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 1);
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime + 1.5);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 1.5);
-  };
-
+  const [waveAmplitude, setWaveAmplitude] = useState(75);
+  const [frequencyRange, setFrequencyRange] = useState('0-50');
+  const [visualizationMode, setVisualizationMode] = useState('3D Wave Field');
+  const [timeWindow, setTimeWindow] = useState('Real-time');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white">
+    <div style={{
+      margin: 0,
+      padding: 0,
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1e293b 0%, #1e40af 50%, #000000 100%)',
+      color: 'white',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    }}>
       <style>{`
-        .header {
-          background: rgba(30, 41, 59, 0.8);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-          padding: 1rem 0;
-        }
-        .header-content {
-          max-width: 1200px;
-          margin: 0 auto;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 2rem;
-        }
-        .logo {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #fbbf24;
-        }
-        .user-info {
-          font-size: 0.875rem;
-          color: #94a3b8;
-        }
-        .main-container {
-          background: rgba(30, 41, 59, 0.9);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 20px;
-          padding: 2rem;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-          max-width: 1400px;
-          margin: 2rem auto;
-        }
-        .visualization-container {
-          background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6));
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 12px;
-          overflow: hidden;
-          height: 500px;
-          margin-bottom: 2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-        }
-        .visualization-placeholder {
-          text-align: center;
-          color: #94a3b8;
-        }
-        .visualization-title {
-          font-size: 1.5rem;
-          font-weight: 600;
-          color: #3b82f6;
-          margin-bottom: 0.5rem;
-        }
-        .visualization-subtitle {
-          font-size: 0.875rem;
-          color: #64748b;
-        }
-        .controls-panel {
-          background: rgba(15, 23, 42, 0.6);
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
-        }
-        .control-row {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 2rem;
-          margin-bottom: 2rem;
-        }
-        .control-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        .control-label {
-          color: #e2e8f0;
-          font-weight: 500;
-          font-size: 0.875rem;
-        }
-        .control-input {
-          padding: 0.5rem;
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 6px;
-          color: white;
-          font-size: 0.875rem;
-        }
-        .control-select {
-          padding: 0.5rem;
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 6px;
-          color: white;
-          font-size: 0.875rem;
-          cursor: pointer;
-        }
-        .day-selector {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-          gap: 0.5rem;
-          margin: 1rem 0;
-        }
-        .day-button {
-          padding: 0.5rem;
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          background: rgba(15, 23, 42, 0.6);
-          color: #e2e8f0;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-size: 0.875rem;
-        }
-        .day-button:hover {
-          border-color: #fbbf24;
-        }
-        .day-button.active {
-          background: #fbbf24;
-          border-color: #fbbf24;
-          color: #1e293b;
-          font-weight: 600;
-        }
-        .resonance-displays {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-          gap: 1rem;
-          margin-bottom: 2rem;
-        }
-        .resonance-card {
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 8px;
-          padding: 1rem;
-          text-align: center;
-        }
-        .resonance-value {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #fbbf24;
-          margin-bottom: 0.25rem;
-        }
-        .resonance-label {
-          font-size: 0.75rem;
-          color: #94a3b8;
-        }
-        .resonance-mode {
-          font-size: 0.625rem;
-          color: #64748b;
+        @keyframes waveAnimation {
+          0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.7; }
+          50% { transform: scale(1.1) rotate(180deg); opacity: 1; }
         }
       `}</style>
-
-      <div className="header">
-        <div className="header-content">
-          <div className="logo">BRETT System Interface</div>
-          <div className="user-info">
-            <div>User: Guest</div>
-            <div>Session Active</div>
+      
+      <div style={{
+        maxWidth: '1400px',
+        margin: '0 auto',
+        padding: '2rem 1rem'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '2rem'
+        }}>
+          <a href="#" onClick={onBack} style={{
+            color: '#fbbf24',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>← Back to Predictions</a>
+          <div>
+            <h1 style={{
+              textAlign: 'center',
+              fontSize: '2.5rem',
+              fontWeight: 'bold',
+              background: 'linear-gradient(to right, #fbbf24, #f97316)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>BRETT System Interface</h1>
+            <p style={{
+              textAlign: 'center',
+              color: '#cbd5e1',
+              marginBottom: '2rem'
+            }}>12-Dimensional GAL-CRM Framework v4.0</p>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '0.875rem', color: '#94a3b8' }}>
+            <p>User: Guest</p>
+            <p>Session Active</p>
           </div>
         </div>
-      </div>
 
-      <div className="container mx-auto px-6">
-        <div className="main-container">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-3">
-              🌊 Cymatic Wave Field Visualization
-            </h1>
-            <p className="text-slate-300">
-              12-Dimensional GAL-CRM Framework v4.0
-            </p>
+        <div style={{
+          background: 'rgba(30, 41, 59, 0.5)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '0.75rem',
+          padding: '2rem',
+          border: '1px solid #475569',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
+        }}>
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            color: '#cbd5e1'
+          }}>
+            🌊 Cymatic Wave Field Visualization
+          </h2>
+
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.8)',
+            border: '2px solid #8b5cf6',
+            borderRadius: '0.75rem',
+            padding: '2rem',
+            marginBottom: '2rem',
+            minHeight: '400px',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `
+                radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.2) 0%, transparent 60%)
+              `,
+              animation: 'waveAnimation 4s ease-in-out infinite'
+            }}></div>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              textAlign: 'center',
+              zIndex: 10
+            }}>
+              <div style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: '#8b5cf6',
+                marginBottom: '0.5rem'
+              }}>3D Seismic Wave Field</div>
+              <div style={{
+                color: '#cbd5e1',
+                fontSize: '1rem'
+              }}>Real-time cymatic pattern analysis</div>
+            </div>
           </div>
 
-          <div className="visualization-container">
-            <div className="visualization-placeholder">
-              <div className="visualization-title">3D Seismic Wave Field</div>
-              <div className="visualization-subtitle">Real-time cymatic pattern analysis</div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '1rem',
+            marginBottom: '2rem'
+          }}>
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid #8b5cf6',
+              borderRadius: '0.5rem',
+              padding: '1rem',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+                color: '#8b5cf6'
+              }}>7.83 Hz</div>
+              <div style={{
+                fontSize: '0.875rem',
+                color: '#cbd5e1',
+                marginTop: '0.25rem'
+              }}>Schumann Resonance</div>
+            </div>
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid #8b5cf6',
+              borderRadius: '0.5rem',
+              padding: '1rem',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+                color: '#8b5cf6'
+              }}>14.3 Hz</div>
+              <div style={{
+                fontSize: '0.875rem',
+                color: '#cbd5e1',
+                marginTop: '0.25rem'
+              }}>Second Mode</div>
+            </div>
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid #8b5cf6',
+              borderRadius: '0.5rem',
+              padding: '1rem',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+                color: '#8b5cf6'
+              }}>20.8 Hz</div>
+              <div style={{
+                fontSize: '0.875rem',
+                color: '#cbd5e1',
+                marginTop: '0.25rem'
+              }}>Third Mode</div>
+            </div>
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid #8b5cf6',
+              borderRadius: '0.5rem',
+              padding: '1rem',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+                color: '#8b5cf6'
+              }}>27.3 Hz</div>
+              <div style={{
+                fontSize: '0.875rem',
+                color: '#cbd5e1',
+                marginTop: '0.25rem'
+              }}>Fourth Mode</div>
             </div>
           </div>
 
-          <div className="resonance-displays">
-            <div className="resonance-card">
-              <div className="resonance-value">7.83 Hz</div>
-              <div className="resonance-label">Schumann Resonance</div>
-              <div className="resonance-mode">First Mode</div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '1.5rem',
+            marginBottom: '2rem'
+          }}>
+            <div style={{
+              background: 'rgba(30, 41, 59, 0.8)',
+              border: '1px solid #475569',
+              borderRadius: '0.5rem',
+              padding: '1rem'
+            }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
+                color: '#cbd5e1'
+              }}>Wave Amplitude</label>
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                value={waveAmplitude}
+                onChange={(e) => setWaveAmplitude(parseInt(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  border: '1px solid #475569',
+                  borderRadius: '0.25rem',
+                  color: 'white'
+                }}
+              />
             </div>
-            <div className="resonance-card">
-              <div className="resonance-value">14.3 Hz</div>
-              <div className="resonance-label">Second Mode</div>
+            <div style={{
+              background: 'rgba(30, 41, 59, 0.8)',
+              border: '1px solid #475569',
+              borderRadius: '0.5rem',
+              padding: '1rem'
+            }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
+                color: '#cbd5e1'
+              }}>Frequency Range</label>
+              <select 
+                value={frequencyRange}
+                onChange={(e) => setFrequencyRange(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  border: '1px solid #475569',
+                  borderRadius: '0.25rem',
+                  color: 'white'
+                }}
+              >
+                <option value="0-50">0-50 Hz (Full Spectrum)</option>
+                <option value="7-15">7-15 Hz (Schumann)</option>
+                <option value="15-30">15-30 Hz (Higher Modes)</option>
+              </select>
             </div>
-            <div className="resonance-card">
-              <div className="resonance-value">20.8 Hz</div>
-              <div className="resonance-label">Third Mode</div>
+            <div style={{
+              background: 'rgba(30, 41, 59, 0.8)',
+              border: '1px solid #475569',
+              borderRadius: '0.5rem',
+              padding: '1rem'
+            }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
+                color: '#cbd5e1'
+              }}>Visualization Mode</label>
+              <select 
+                value={visualizationMode}
+                onChange={(e) => setVisualizationMode(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  border: '1px solid #475569',
+                  borderRadius: '0.25rem',
+                  color: 'white'
+                }}
+              >
+                <option value="3D Wave Field">3D Wave Field</option>
+                <option value="Frequency Spectrum">Frequency Spectrum</option>
+                <option value="Time Series">Time Series</option>
+                <option value="Phase Space">Phase Space</option>
+              </select>
             </div>
-            <div className="resonance-card">
-              <div className="resonance-value">27.3 Hz</div>
-              <div className="resonance-label">Fourth Mode</div>
+            <div style={{
+              background: 'rgba(30, 41, 59, 0.8)',
+              border: '1px solid #475569',
+              borderRadius: '0.5rem',
+              padding: '1rem'
+            }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
+                color: '#cbd5e1'
+              }}>Time Window</label>
+              <select 
+                value={timeWindow}
+                onChange={(e) => setTimeWindow(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  border: '1px solid #475569',
+                  borderRadius: '0.25rem',
+                  color: 'white'
+                }}
+              >
+                <option value="Real-time">Real-time</option>
+                <option value="Last 24 hours">Last 24 hours</option>
+                <option value="Last 7 days">Last 7 days</option>
+                <option value="21-day prediction">21-day prediction</option>
+              </select>
             </div>
           </div>
 
-          <div className="controls-panel">
-            <div className="control-row">
-              <div className="control-group">
-                <label className="control-label">Wave Amplitude</label>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="5.0"
-                  step="0.1"
-                  value={waveAmplitude}
-                  onChange={(e) => setWaveAmplitude(parseFloat(e.target.value))}
-                  className="control-input"
-                />
-              </div>
-              <div className="control-group">
-                <label className="control-label">Frequency Range</label>
-                <select
-                  value={`${frequencyRange[0]}-${frequencyRange[1]}`}
-                  onChange={(e) => {
-                    const [min, max] = e.target.value.split('-').map(Number);
-                    setFrequencyRange([min, max]);
+          <div style={{ marginBottom: '1rem' }}>
+            <h3 style={{ color: '#cbd5e1', marginBottom: '0.5rem' }}>21-Day Selection Range</h3>
+            <div style={{
+              display: 'flex',
+              gap: '0.5rem',
+              marginBottom: '2rem',
+              flexWrap: 'wrap'
+            }}>
+              {Array.from({ length: 21 }, (_, i) => i + 1).map((day) => (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(day)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: selectedDay === day ? '#8b5cf6' : 'rgba(30, 41, 59, 0.8)',
+                    border: '1px solid #475569',
+                    borderColor: selectedDay === day ? '#8b5cf6' : '#475569',
+                    borderRadius: '0.25rem',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
                   }}
-                  className="control-select"
+                  onMouseOver={(e) => {
+                    if (selectedDay !== day) {
+                      e.currentTarget.style.borderColor = '#8b5cf6';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (selectedDay !== day) {
+                      e.currentTarget.style.borderColor = '#475569';
+                    }
+                  }}
                 >
-                  <option value="0.50-1.00">0.50 Hz (Full Spectrum)</option>
-                  <option value="7.83-14.3">7.83-14.3 Hz (Schumann)</option>
-                  <option value="20.8-27.3">20.8-27.3 Hz (Higher Modes)</option>
-                </select>
-              </div>
-              <div className="control-group">
-                <label className="control-label">Visualization Mode</label>
-                <select
-                  value={visualizationMode}
-                  onChange={(e) => setVisualizationMode(e.target.value)}
-                  className="control-select"
-                >
-                  <option value="seismic">3D Wave Field</option>
-                  <option value="electromagnetic">EM Field</option>
-                  <option value="harmonic">Harmonic Resonance</option>
-                </select>
-              </div>
-              <div className="control-group">
-                <label className="control-label">Time Window</label>
-                <select
-                  value={selectedDay}
-                  onChange={(e) => setSelectedDay(parseInt(e.target.value))}
-                  className="control-select"
-                >
-                  <option value="1">Real-time</option>
-                  <option value="7">7-day Average</option>
-                  <option value="21">21-day Composite</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="control-group">
-              <span className="control-label">Day Selection:</span>
-              <div className="day-selector">
-                {Array.from({ length: 21 }, (_, i) => i + 1).map(day => (
-                  <button
-                    key={day}
-                    className={`day-button ${selectedDay === day ? 'active' : ''}`}
-                    onClick={() => setSelectedDay(day)}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
+                  Day {day}
+                </button>
+              ))}
             </div>
           </div>
 
-          {cymaticData?.alert_level === 'CRITICAL' && (
-            <div className="alert-banner">
-              <div className="flex items-center">
-                <AlertTriangle className="w-6 h-6 text-red-400 mr-3 animate-bounce" />
-                <div>
-                  <span className="text-red-200 font-bold text-lg">🚨 RED ALERT - CRITICAL RESONANCE DETECTED 🚨</span>
-                  <p className="text-red-100 mt-1">
-                    Constructive resonance overlap exceeds 52% threshold. Enhanced seismic monitoring recommended.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="visualization-container">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-                  <p className="text-gray-400">Generating 3D cymatic visualization...</p>
-                </div>
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center text-red-400">
-                  <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
-                  <p>{error}</p>
-                </div>
-              </div>
-            ) : cymaticData ? (
-              <Canvas camera={{ position: [0, 5, 15], fov: 60 }}>
-                <ambientLight intensity={0.4} />
-                <pointLight position={[10, 10, 10]} intensity={1} />
-                <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4444ff" />
-                
-                <WaveField 
-                  data={cymaticData} 
-                  time={time} 
-                  waveAmplitude={waveAmplitude}
-                  frequencyRange={frequencyRange}
-                  visualizationMode={visualizationMode}
-                />
-                
-                <OrbitControls 
-                  enablePan={true} 
-                  enableZoom={true} 
-                  enableRotate={true}
-                  maxDistance={30}
-                  minDistance={5}
-                />
-              </Canvas>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-gray-400">No cymatic data available</p>
-              </div>
-            )}
-          </div>
-
-          {cymaticData && (
-            <div className="stats-grid">
-              <div className="stat-card">
-                <h4 className="stat-title">Resonance Analysis</h4>
-                <div className="stat-content">
-                  <div className="flex justify-between mb-2">
-                    <span>Overlap Percentage:</span>
-                    <span className={`font-bold ${
-                      cymaticData.resonance_overlap_percent > 52 ? 'text-red-400' : 
-                      cymaticData.resonance_overlap_percent > 35 ? 'text-yellow-400' : 'text-green-400'
-                    }`}>
-                      {cymaticData.resonance_overlap_percent.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between mb-2">
-                    <span>Alert Level:</span>
-                    <span className={`font-bold ${
-                      cymaticData.alert_level === 'CRITICAL' ? 'text-red-400' : 
-                      cymaticData.alert_level === 'HIGH' ? 'text-yellow-400' : 'text-green-400'
-                    }`}>
-                      {cymaticData.alert_level}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Phase Lock Points:</span>
-                    <span className="text-white">{cymaticData.phase_lock_points.length}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <h4 className="stat-title">Visualization Controls</h4>
-                <div className="stat-content">
-                  <p>• Mouse: Rotate view</p>
-                  <p>• Scroll: Zoom in/out</p>
-                  <p>• Drag: Pan view</p>
-                  <p>• Red spheres: Phase lock points</p>
-                  <p>• Wave field: Real resonance data</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <h4 className="stat-title">Technical Details</h4>
-                <div className="stat-content">
-                  <div className="flex justify-between mb-2">
-                    <span>Analysis Day:</span>
-                    <span className="text-white">{cymaticData.day}</span>
-                  </div>
-                  <div className="flex justify-between mb-2">
-                    <span>Wave Layers:</span>
-                    <span className="text-white">36</span>
-                  </div>
-                  <div className="flex justify-between mb-2">
-                    <span>Update Rate:</span>
-                    <span className="text-white">60 FPS</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Data Source:</span>
-                    <span className="text-white">Real-time</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-6 p-4 bg-purple-900/30 border border-purple-500/50 rounded-lg">
-            <h4 className="font-semibold text-white mb-2 flex items-center">
-              <div className="w-4 h-4 mr-2 bg-gradient-to-r from-purple-400 to-blue-400 rounded"></div>
-              About Cymatic Visualization
-            </h4>
-            <p className="text-purple-100 text-sm">
-              This 3D visualization displays real-time electromagnetic resonance patterns overlaid on your selected location. 
-              The wave field represents 36-layer fractal interference patterns, while red spheres indicate phase lock points. 
-              When constructive resonance overlap exceeds 52%, a critical alert is triggered with visual and audio warnings.
-            </p>
-          </div>
-
-          <div className="flex justify-center mt-6">
-            <button className="btn btn-secondary" onClick={onBack}>
-              Back to Predictions
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <button style={{
+              padding: '0.75rem 1.5rem',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              fontSize: '1rem',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'linear-gradient(to right, #8b5cf6, #6366f1)',
+              color: 'white'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            >
+              📊 Export Visualization
+            </button>
+            <button style={{
+              padding: '0.75rem 1.5rem',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              fontSize: '1rem',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'rgba(75, 85, 99, 0.8)',
+              color: 'white',
+              border: '1px solid #6b7280'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            >
+              ⚙️ Advanced Settings
+            </button>
+            <button style={{
+              padding: '0.75rem 1.5rem',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              fontSize: '1rem',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'rgba(75, 85, 99, 0.8)',
+              color: 'white',
+              border: '1px solid #6b7280'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            >
+              📈 View Raw Data
             </button>
           </div>
         </div>

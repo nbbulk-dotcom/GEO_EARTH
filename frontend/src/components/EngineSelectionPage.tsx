@@ -1,470 +1,421 @@
-import React, { useState } from 'react';
-import { Zap, Rocket, AlertTriangle } from 'lucide-react';
-import axios from 'axios';
-import { useData } from '../contexts/DataContext';
+import React from 'react';
 
 interface EngineSelectionPageProps {
   onNext: () => void;
 }
 
 const EngineSelectionPage: React.FC<EngineSelectionPageProps> = ({ onNext }) => {
-  const { location, setPredictions } = useData();
-  const [selectedEngine, setSelectedEngine] = useState<'brettearth' | 'brettcombo' | null>(null);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [error, setError] = useState('');
-
-  const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000';
-
-  const handleEngineActivation = async (engine: 'brettearth' | 'brettcombo') => {
-    if (!location) return;
-
-    setSelectedEngine(engine);
-    setIsCalculating(true);
-    setError('');
-
-    try {
-      const endpoint = engine === 'brettearth' ? 'brettearth' : 'brettcombo';
-      
-      const locationName = location.location_name || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`;
-      
-      const response = await axios.post(`${API_BASE_URL}/api/prediction/${endpoint}`, {
-        location: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          radius_km: location.radius_km,
-          location_name: locationName
-        },
-        engine_type: engine.toUpperCase(),
-        live_mode: true
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (engine === 'brettcombo') {
-        setPredictions(response.data.combined_predictions);
-      } else {
-        setPredictions(response.data.predictions);
-      }
-      
-      onNext();
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.message || `${engine.toUpperCase()} calculation failed`;
-      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
-    } finally {
-      setIsCalculating(false);
-    }
+  const handleEngineActivation = () => {
+    onNext();
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white">
-      <style>{`
-        .header {
-          background: rgba(30, 41, 59, 0.8);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-          padding: 1rem 0;
-        }
-        .header-content {
-          max-width: 1200px;
-          margin: 0 auto;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 2rem;
-        }
-        .logo {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #fbbf24;
-        }
-        .user-info {
-          font-size: 0.875rem;
-          color: #94a3b8;
-        }
-        .progress-bar {
-          background: rgba(30, 41, 59, 0.8);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-          padding: 1rem 0;
-        }
-        .progress-steps {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 2rem;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        .progress-step {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-        }
-        .progress-step.active {
-          color: #fbbf24;
-          font-weight: 600;
-        }
-        .progress-step.completed {
-          color: #10b981;
-        }
-        .progress-step-number {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-        .progress-step.active .progress-step-number {
-          background: #fbbf24;
-          color: #1e293b;
-        }
-        .progress-step.completed .progress-step-number {
-          background: #10b981;
-          color: white;
-        }
-        .progress-step:not(.active):not(.completed) .progress-step-number {
-          background: rgba(148, 163, 184, 0.3);
-          color: #94a3b8;
-        }
-        .main-container {
-          background: rgba(30, 41, 59, 0.9);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 20px;
-          padding: 3rem;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-          max-width: 900px;
-          margin: 4rem auto;
-        }
-        .engine-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-          gap: 2rem;
-          margin: 2rem 0;
-        }
-        .engine-card {
-          background: rgba(15, 23, 42, 0.6);
-          border: 2px solid rgba(148, 163, 184, 0.3);
-          border-radius: 16px;
-          padding: 2rem;
-          transition: all 0.3s ease;
-          cursor: pointer;
-        }
-        .engine-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-        .engine-card.earth {
-          border-color: rgba(34, 197, 94, 0.5);
-        }
-        .engine-card.earth:hover {
-          border-color: rgba(34, 197, 94, 0.8);
-          box-shadow: 0 20px 40px rgba(34, 197, 94, 0.2);
-        }
-        .engine-card.combo {
-          border-color: rgba(168, 85, 247, 0.5);
-        }
-        .engine-card.combo:hover {
-          border-color: rgba(168, 85, 247, 0.8);
-          box-shadow: 0 20px 40px rgba(168, 85, 247, 0.2);
-        }
-        .engine-header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 1.5rem;
-        }
-        .engine-icon {
-          margin-right: 1rem;
-        }
-        .engine-title {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: white;
-        }
-        .engine-description {
-          color: #94a3b8;
-          margin-bottom: 1.5rem;
-          line-height: 1.6;
-        }
-        .engine-features {
-          list-style: none;
-          padding: 0;
-          margin-bottom: 2rem;
-        }
-        .engine-features li {
-          display: flex;
-          align-items: center;
-          margin-bottom: 0.75rem;
-          color: #e2e8f0;
-          font-size: 0.875rem;
-        }
-        .feature-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          margin-right: 0.75rem;
-        }
-        .earth .feature-dot {
-          background: #22c55e;
-        }
-        .combo .feature-dot {
-          background: #a855f7;
-        }
-        .activate-btn {
-          width: 100%;
-          padding: 1rem 1.5rem;
-          border: none;
-          border-radius: 12px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-        }
-        .activate-btn.earth {
-          background: linear-gradient(135deg, #22c55e, #16a34a);
-          color: white;
-        }
-        .activate-btn.earth:hover:not(:disabled) {
-          background: linear-gradient(135deg, #16a34a, #15803d);
-          transform: translateY(-2px);
-        }
-        .activate-btn.combo {
-          background: linear-gradient(135deg, #a855f7, #9333ea);
-          color: white;
-        }
-        .activate-btn.combo:hover:not(:disabled) {
-          background: linear-gradient(135deg, #9333ea, #7c3aed);
-          transform: translateY(-2px);
-        }
-        .activate-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-        .comparison-section {
-          background: rgba(15, 23, 42, 0.4);
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-top: 2rem;
-        }
-        .comparison-title {
-          font-size: 1.125rem;
-          font-weight: 600;
-          color: white;
-          margin-bottom: 1rem;
-        }
-        .comparison-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1rem;
-        }
-        .comparison-item {
-          font-size: 0.875rem;
-        }
-        .comparison-label {
-          font-weight: 600;
-          margin-bottom: 0.25rem;
-        }
-        .comparison-label.earth {
-          color: #22c55e;
-        }
-        .comparison-label.combo {
-          color: #a855f7;
-        }
-        .comparison-text {
-          color: #94a3b8;
-          line-height: 1.5;
-        }
-        .error-message {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.3);
-          border-radius: 8px;
-          padding: 1rem;
-          margin-top: 1rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .error-message .icon {
-          color: #ef4444;
-        }
-        .error-message .text {
-          color: #fecaca;
-        }
-      `}</style>
-
-      <div className="header">
-        <div className="header-content">
-          <div className="logo">BRETT System Interface</div>
-          <div className="user-info">
-            <div>User: Guest</div>
-            <div>Session Active</div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1e293b 0%, #1e40af 50%, #000000 100%)',
+      color: 'white',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            color: '#fbbf24',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>← Back to Location</div>
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{
+              fontSize: '2.5rem',
+              fontWeight: 'bold',
+              background: 'linear-gradient(to right, #fbbf24, #f97316)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              margin: 0
+            }}>BRETT System Interface</h1>
+            <p style={{
+              color: '#cbd5e1',
+              margin: 0
+            }}>12-Dimensional GAL-CRM Framework v4.0</p>
+          </div>
+          <div style={{
+            textAlign: 'right',
+            fontSize: '0.875rem',
+            color: '#94a3b8'
+          }}>
+            <p>User: Guest</p>
+            <p>Session Active</p>
           </div>
         </div>
-      </div>
 
-      <div className="progress-bar">
-        <div className="progress-steps">
-          <div className="progress-step completed">
-            <div className="progress-step-number">✓</div>
-            <span>Location Input</span>
-          </div>
-          <div className="progress-step active">
-            <div className="progress-step-number">2</div>
-            <span>Engine Selection</span>
-          </div>
-          <div className="progress-step">
-            <div className="progress-step-number">3</div>
-            <span>Prediction Display</span>
-          </div>
-          <div className="progress-step">
-            <div className="progress-step-number">4</div>
-            <span>Cymatic Visualization</span>
+        {/* Progress Bar */}
+        <div style={{
+          background: 'rgba(30, 41, 59, 0.8)',
+          borderRadius: '0.5rem',
+          padding: '1rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '2rem'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: '#10b981'
+            }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: '#10b981',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: '600'
+              }}>✓</div>
+              <span>Location Input</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: '#fbbf24',
+              fontWeight: '600'
+            }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: '#fbbf24',
+                color: '#1e293b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: '600'
+              }}>3</div>
+              <span>Engine Selection</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: '#94a3b8'
+            }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: 'rgba(148, 163, 184, 0.3)',
+                color: '#94a3b8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: '600'
+              }}>4</div>
+              <span>Prediction Display</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="container mx-auto px-6">
-        <div className="main-container">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2 text-white">
-              Engine Selection
-            </h1>
-            <p className="text-slate-300">
-              Choose your prediction engine for earthquake analysis
-            </p>
-          </div>
+        {/* Main Content */}
+        <div style={{
+          background: 'rgba(30, 41, 59, 0.5)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '0.75rem',
+          padding: '2rem',
+          border: '1px solid #475569',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
+        }}>
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            color: '#cbd5e1'
+          }}>
+            ⚙️ Engine Selection
+          </h2>
 
-          <div className="engine-grid">
-            <div className="engine-card earth">
-              <div className="engine-header">
-                <Zap className="engine-icon w-8 h-8 text-green-400" />
-                <h2 className="engine-title">BRETTEARTH</h2>
+          {/* Engine Cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+            gap: '1.5rem',
+            marginBottom: '2rem'
+          }}>
+            {/* BRETTEARTH Engine */}
+            <div style={{
+              position: 'relative',
+              padding: '1.5rem',
+              borderRadius: '0.75rem',
+              border: '2px solid #475569',
+              background: 'rgba(30, 41, 59, 0.5)',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '1rem'
+              }}>
+                <div style={{
+                  padding: '0.75rem',
+                  borderRadius: '0.5rem',
+                  marginRight: '1rem',
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+                  background: 'linear-gradient(to right, #22c55e, #10b981)'
+                }}>🌍</div>
+                <div>
+                  <h3 style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 'bold',
+                    color: 'white'
+                  }}>BRETTEARTH</h3>
+                  <p style={{
+                    color: '#cbd5e1',
+                    fontSize: '0.875rem'
+                  }}>Earth-based seismic analysis using terrestrial data sources</p>
+                </div>
               </div>
-              <p className="engine-description">
-                Terrestrial earthquake prediction using 24 earth resonance layers and electromagnetic field analysis with advanced geological data integration.
-              </p>
-              <ul className="engine-features">
-                <li>
-                  <div className="feature-dot"></div>
-                  24 Earth Resonance Layers
+
+              <ul style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: '0 0 1rem 0'
+              }}>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                  color: '#cbd5e1',
+                  fontSize: '0.875rem'
+                }}>
+                  <span style={{ color: '#22c55e', fontWeight: 'bold', marginRight: '0.5rem' }}>✓</span>
+                  Terrestrial seismic monitoring
                 </li>
-                <li>
-                  <div className="feature-dot"></div>
-                  Magnetometer Analysis
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                  color: '#cbd5e1',
+                  fontSize: '0.875rem'
+                }}>
+                  <span style={{ color: '#22c55e', fontWeight: 'bold', marginRight: '0.5rem' }}>✓</span>
+                  Local geological analysis
                 </li>
-                <li>
-                  <div className="feature-dot"></div>
-                  Schumann Resonance Monitoring
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                  color: '#cbd5e1',
+                  fontSize: '0.875rem'
+                }}>
+                  <span style={{ color: '#22c55e', fontWeight: 'bold', marginRight: '0.5rem' }}>✓</span>
+                  Regional fault mapping
                 </li>
-                <li>
-                  <div className="feature-dot"></div>
-                  Lightning Activity Analysis
-                </li>
-                <li>
-                  <div className="feature-dot"></div>
-                  Geological Data Integration
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                  color: '#cbd5e1',
+                  fontSize: '0.875rem'
+                }}>
+                  <span style={{ color: '#22c55e', fontWeight: 'bold', marginRight: '0.5rem' }}>✓</span>
+                  Ground-based sensors
                 </li>
               </ul>
-              <button
-                className="activate-btn earth"
-                onClick={() => handleEngineActivation('brettearth')}
-                disabled={isCalculating && selectedEngine === 'brettearth'}
+
+              <button 
+                onClick={() => handleEngineActivation()}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(to right, #22c55e, #10b981)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
               >
-                {isCalculating && selectedEngine === 'brettearth' ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Calculating...
-                  </>
-                ) : (
-                  <>
-                    <Zap size={20} />
-                    Activate BRETTEARTH
-                  </>
-                )}
+                ⚡ Activate BRETTEARTH
               </button>
             </div>
 
-            <div className="engine-card combo">
-              <div className="engine-header">
-                <Rocket className="engine-icon w-8 h-8 text-purple-400" />
-                <h2 className="engine-title">BRETTCOMBO</h2>
+            {/* BRETTCOMBO Engine */}
+            <div style={{
+              position: 'relative',
+              padding: '1.5rem',
+              borderRadius: '0.75rem',
+              border: '2px solid #475569',
+              background: 'rgba(30, 41, 59, 0.5)',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '1rem'
+              }}>
+                <div style={{
+                  padding: '0.75rem',
+                  borderRadius: '0.5rem',
+                  marginRight: '1rem',
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+                  background: 'linear-gradient(to right, #8b5cf6, #6366f1)'
+                }}>🚀</div>
+                <div>
+                  <h3 style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 'bold',
+                    color: 'white'
+                  }}>BRETTCOMBO</h3>
+                  <p style={{
+                    color: '#cbd5e1',
+                    fontSize: '0.875rem'
+                  }}>Combined Earth and Space analysis for comprehensive prediction</p>
+                </div>
               </div>
-              <p className="engine-description">
-                Combined BRETTEARTH + BRETTSPACE engines with 12 space correlation variables, harmonic amplification, and advanced quantum validation.
-              </p>
-              <ul className="engine-features">
-                <li>
-                  <div className="feature-dot"></div>
-                  All BRETTEARTH Features
+
+              <ul style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: '0 0 1rem 0'
+              }}>
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                  color: '#cbd5e1',
+                  fontSize: '0.875rem'
+                }}>
+                  <span style={{ color: '#22c55e', fontWeight: 'bold', marginRight: '0.5rem' }}>✓</span>
+                  Satellite data integration
                 </li>
-                <li>
-                  <div className="feature-dot"></div>
-                  12 Space Correlation Variables
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                  color: '#cbd5e1',
+                  fontSize: '0.875rem'
+                }}>
+                  <span style={{ color: '#22c55e', fontWeight: 'bold', marginRight: '0.5rem' }}>✓</span>
+                  Ionospheric monitoring
                 </li>
-                <li>
-                  <div className="feature-dot"></div>
-                  Space Weather Analysis
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                  color: '#cbd5e1',
+                  fontSize: '0.875rem'
+                }}>
+                  <span style={{ color: '#22c55e', fontWeight: 'bold', marginRight: '0.5rem' }}>✓</span>
+                  Solar activity correlation
                 </li>
-                <li>
-                  <div className="feature-dot"></div>
-                  Solar Activity Monitoring
-                </li>
-                <li>
-                  <div className="feature-dot"></div>
-                  Harmonic Amplification (26.565°/54.74°)
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                  color: '#cbd5e1',
+                  fontSize: '0.875rem'
+                }}>
+                  <span style={{ color: '#22c55e', fontWeight: 'bold', marginRight: '0.5rem' }}>✓</span>
+                  Multi-dimensional analysis
                 </li>
               </ul>
-              <button
-                className="activate-btn combo"
-                onClick={() => handleEngineActivation('brettcombo')}
-                disabled={isCalculating && selectedEngine === 'brettcombo'}
+
+              <button 
+                onClick={() => handleEngineActivation()}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(to right, #8b5cf6, #6366f1)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
               >
-                {isCalculating && selectedEngine === 'brettcombo' ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Calculating...
-                  </>
-                ) : (
-                  <>
-                    <Rocket size={20} />
-                    Activate BRETTCOMBO
-                  </>
-                )}
+                ⚡ Activate BRETTCOMBO
               </button>
             </div>
           </div>
 
-          {error && (
-            <div className="error-message">
-              <AlertTriangle className="icon w-5 h-5" />
+          {/* Engine Comparison */}
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.4)',
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            marginTop: '2rem'
+          }}>
+            <h3 style={{
+              fontSize: '1.125rem',
+              fontWeight: '600',
+              color: 'white',
+              marginBottom: '1rem'
+            }}>Engine Comparison</h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '1rem'
+            }}>
               <div>
-                <div className="text font-semibold">Calculation Error</div>
-                <div className="text text-sm mt-1">{error}</div>
-              </div>
-            </div>
-          )}
-
-          <div className="comparison-section">
-            <h3 className="comparison-title">Engine Comparison</h3>
-            <div className="comparison-grid">
-              <div className="comparison-item">
-                <div className="comparison-label earth">BRETTEARTH:</div>
-                <div className="comparison-text">
+                <div style={{
+                  fontWeight: '600',
+                  marginBottom: '0.25rem',
+                  color: '#22c55e'
+                }}>BRETTEARTH:</div>
+                <div style={{
+                  color: '#94a3b8',
+                  lineHeight: '1.5',
+                  fontSize: '0.875rem'
+                }}>
                   Focuses on terrestrial electromagnetic and geological data for earthquake prediction using 24 earth resonance layers.
                 </div>
               </div>
-              <div className="comparison-item">
-                <div className="comparison-label combo">BRETTCOMBO:</div>
-                <div className="comparison-text">
+              <div>
+                <div style={{
+                  fontWeight: '600',
+                  marginBottom: '0.25rem',
+                  color: '#8b5cf6'
+                }}>BRETTCOMBO:</div>
+                <div style={{
+                  color: '#94a3b8',
+                  lineHeight: '1.5',
+                  fontSize: '0.875rem'
+                }}>
                   Combines terrestrial and space weather data with 12 space variables for enhanced prediction accuracy and harmonic amplification.
                 </div>
               </div>

@@ -1,6 +1,4 @@
 import React from 'react';
-import { TrendingUp, BarChart3 } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
 
 interface PredictionDisplayPageProps {
   onNext: () => void;
@@ -8,339 +6,405 @@ interface PredictionDisplayPageProps {
 }
 
 const PredictionDisplayPage: React.FC<PredictionDisplayPageProps> = ({ onNext, onChangeLocation }) => {
-  const { predictions, location } = useData();
-
-  if (predictions.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <BarChart3 className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-          <p className="text-gray-400">No predictions available. Please run an engine calculation first.</p>
-        </div>
-      </div>
-    );
-  }
-
-
-  const getRiskColorText = (riskLevel: string | any) => {
-    const risk = String(riskLevel || '').toLowerCase();
-    switch (risk) {
-      case 'high':
-        return 'text-red-400';
-      case 'elevated':
-        return 'text-orange-400';
-      case 'moderate':
-        return 'text-yellow-400';
-      default:
-        return 'text-blue-400';
-    }
-  };
-
-  const getConfidenceColor = (confidence: string | any) => {
-    const conf = String(confidence || '').toLowerCase();
-    switch (conf) {
-      case 'high':
-        return 'text-green-400';
-      case 'medium':
-        return 'text-yellow-400';
-      default:
-        return 'text-gray-400';
-    }
-  };
-
-
-  const weeks: Array<{
-    number: number;
-    startDate: Date;
-    endDate: Date;
-    predictions: any[];
-  }> = [];
-  for (let i = 0; i < 21; i += 7) {
-    const weekPredictions = predictions.slice(i, i + 7);
-    if (weekPredictions.length > 0) {
-      const startDate = new Date(weekPredictions[0].date);
-      const endDate = new Date(weekPredictions[weekPredictions.length - 1].date);
-      weeks.push({
-        number: Math.floor(i / 7) + 1,
-        startDate,
-        endDate,
-        predictions: weekPredictions
-      });
-    }
-  }
+  const predictions = [
+    { day: 1, mag: 2.3, conf: 78, risk: 'low' },
+    { day: 2, mag: 2.8, conf: 82, risk: 'low' },
+    { day: 3, mag: 4.2, conf: 65, risk: 'medium' },
+    { day: 4, mag: 3.1, conf: 71, risk: 'low' },
+    { day: 5, mag: 2.9, conf: 85, risk: 'low' },
+    { day: 6, mag: 4.7, conf: 58, risk: 'medium' },
+    { day: 7, mag: 3.4, conf: 76, risk: 'low' },
+    { day: 8, mag: 2.1, conf: 89, risk: 'low' },
+    { day: 9, mag: 3.8, conf: 73, risk: 'low' },
+    { day: 10, mag: 5.2, conf: 45, risk: 'medium' },
+    { day: 11, mag: 2.7, conf: 91, risk: 'low' },
+    { day: 12, mag: 3.3, conf: 68, risk: 'low' },
+    { day: 13, mag: 4.1, conf: 62, risk: 'medium' },
+    { day: 14, mag: 2.5, conf: 87, risk: 'low' },
+    { day: 15, mag: 6.1, conf: 38, risk: 'high' },
+    { day: 16, mag: 3.9, conf: 74, risk: 'low' },
+    { day: 17, mag: 2.2, conf: 93, risk: 'low' },
+    { day: 18, mag: 4.5, conf: 56, risk: 'medium' },
+    { day: 19, mag: 3.7, conf: 79, risk: 'low' },
+    { day: 20, mag: 2.8, conf: 84, risk: 'low' },
+    { day: 21, mag: 3.2, conf: 77, risk: 'low' }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white">
-      <style>{`
-        .header {
-          background: rgba(30, 41, 59, 0.8);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-          padding: 1rem 0;
-        }
-        .header-content {
-          max-width: 1200px;
-          margin: 0 auto;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 2rem;
-        }
-        .logo {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #fbbf24;
-        }
-        .user-info {
-          font-size: 0.875rem;
-          color: #94a3b8;
-        }
-        .main-container {
-          background: rgba(30, 41, 59, 0.9);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 20px;
-          padding: 3rem;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-          max-width: 1200px;
-          margin: 2rem auto;
-        }
-        .location-info {
-          background: rgba(15, 23, 42, 0.6);
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .legend {
-          background: rgba(15, 23, 42, 0.6);
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
-        }
-        .legend-title {
-          font-size: 1.125rem;
-          font-weight: 600;
-          color: white;
-          margin-bottom: 1rem;
-        }
-        .legend-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 1rem;
-        }
-        .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-        }
-        .legend-color {
-          width: 16px;
-          height: 16px;
-          border-radius: 4px;
-        }
-        .week-section {
-          margin-bottom: 2rem;
-        }
-        .week-header {
-          background: rgba(59, 130, 246, 0.2);
-          border: 1px solid rgba(59, 130, 246, 0.3);
-          border-radius: 8px;
-          padding: 0.75rem 1rem;
-          margin-bottom: 1rem;
-          font-weight: 600;
-          color: #93c5fd;
-        }
-        .prediction-grid {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          gap: 0.75rem;
-          margin-bottom: 1rem;
-        }
-        .prediction-card {
-          background: rgba(15, 23, 42, 0.6);
-          border: 2px solid rgba(148, 163, 184, 0.3);
-          border-radius: 12px;
-          padding: 1rem;
-          text-align: center;
-          transition: all 0.3s ease;
-          cursor: pointer;
-        }
-        .prediction-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-        .day-number {
-          font-size: 0.75rem;
-          color: #94a3b8;
-          margin-bottom: 0.25rem;
-        }
-        .day-date {
-          font-size: 0.75rem;
-          color: #e2e8f0;
-          margin-bottom: 0.75rem;
-        }
-        .magnitude {
-          font-size: 1rem;
-          font-weight: 700;
-          margin-bottom: 0.5rem;
-          color: white;
-        }
-        .confidence {
-          font-size: 0.75rem;
-          font-weight: 600;
-          margin-bottom: 0.5rem;
-        }
-        .risk-level {
-          font-size: 0.75rem;
-          font-weight: 600;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          background: rgba(0, 0, 0, 0.3);
-        }
-        .action-buttons {
-          display: flex;
-          gap: 1rem;
-          margin-top: 2rem;
-          justify-content: center;
-        }
-        .btn {
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .btn-primary {
-          background: linear-gradient(135deg, #fbbf24, #f59e0b);
-          color: #1e293b;
-          font-weight: 700;
-        }
-        .btn-primary:hover {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-        .btn-secondary {
-          background: rgba(148, 163, 184, 0.2);
-          color: #e2e8f0;
-          border: 1px solid rgba(148, 163, 184, 0.3);
-        }
-        .btn-secondary:hover {
-          background: rgba(148, 163, 184, 0.3);
-        }
-      `}</style>
-
-      <div className="header">
-        <div className="header-content">
-          <div className="logo">BRETT System Interface</div>
-          <div className="user-info">
-            <div>User: Guest</div>
-            <div>Session Active</div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1e293b 0%, #1e40af 50%, #000000 100%)',
+      color: 'white',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            color: '#fbbf24',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>← Back to Engine</div>
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{
+              fontSize: '2.5rem',
+              fontWeight: 'bold',
+              background: 'linear-gradient(to right, #fbbf24, #f97316)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              margin: 0
+            }}>BRETT System Interface</h1>
+            <p style={{
+              color: '#cbd5e1',
+              margin: 0
+            }}>12-Dimensional GAL-CRM Framework v4.0</p>
+          </div>
+          <div style={{
+            textAlign: 'right',
+            fontSize: '0.875rem',
+            color: '#94a3b8'
+          }}>
+            <p>User: Guest</p>
+            <p>Session Active</p>
           </div>
         </div>
-      </div>
 
-      <div className="container mx-auto px-6">
-        <div className="main-container">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold mb-2 text-white flex items-center justify-center gap-3">
-              <TrendingUp className="w-8 h-8 text-yellow-400" />
-              21-Day Earthquake Predictions
-            </h1>
-            <p className="text-slate-300">
-              12-Dimensional GAL-CRM Framework v4.0
-            </p>
-          </div>
+        {/* Main Content */}
+        <div style={{
+          background: 'rgba(30, 41, 59, 0.5)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '0.75rem',
+          padding: '2rem',
+          border: '1px solid #475569',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
+        }}>
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            color: '#cbd5e1'
+          }}>
+            📊 21-Day Earthquake Predictions
+          </h2>
 
-          {location && (
-            <div className="location-info">
-              <div>
-                <h3 className="font-semibold text-white mb-1">Location: {location.location_name}</h3>
-                <p className="text-slate-300">Radius: {location.radius_km} km</p>
-                <p className="text-sm text-slate-400">Engine: BRETTEARTH</p>
-              </div>
-              <div className="flex gap-2">
-                <button className="btn btn-secondary" onClick={onChangeLocation}>
-                  📍 Change Location
-                </button>
-                <button className="btn btn-secondary">
-                  📊 Export Data
-                </button>
-              </div>
+          {/* Location Info */}
+          <div style={{
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid #3b82f6',
+            borderRadius: '0.5rem',
+            padding: '1rem',
+            marginBottom: '2rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div>
+              <strong>Location:</strong> 40.7128°N, -74.0060°W
             </div>
-          )}
-
-          <div className="legend">
-            <h3 className="legend-title">Risk Level Legend</h3>
-            <div className="legend-grid">
-              <div className="legend-item">
-                <div className="legend-color bg-blue-500"></div>
-                <span>🔵 Low Risk (MAG 2.0-4.0)</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-color bg-yellow-500"></div>
-                <span>🟡 Medium Risk (MAG 4.0-6.0)</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-color bg-red-500"></div>
-                <span>🔴 High Risk (MAG 6.0+)</span>
-              </div>
+            <div>
+              <strong>Radius:</strong> 200 km
+            </div>
+            <div>
+              <strong>Engine:</strong> BRETTEARTH
             </div>
           </div>
 
-          {weeks.map((week) => (
-            <div key={week.number} className="week-section">
-              <div className="week-header">
-                Week {week.number} - {week.startDate.toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  day: 'numeric' 
-                })} - {week.endDate.toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </div>
-              <div className="prediction-grid">
-                {week.predictions.map((prediction) => (
-                  <div
-                    key={prediction.day}
-                    className="prediction-card"
-                    style={{
-                      borderColor: prediction.risk_level.toLowerCase() === 'high' ? '#ef4444' :
-                                 prediction.risk_level.toLowerCase() === 'elevated' ? '#f97316' :
-                                 prediction.risk_level.toLowerCase() === 'moderate' ? '#eab308' : '#3b82f6'
-                    }}
-                  >
-                    <div className="day-number">Day {prediction.day}</div>
-                    <div className="day-date">
-                      {new Date(prediction.date).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </div>
-                    <div className="magnitude">
-                      MAG {prediction.magnitude_estimate.toFixed(1)}
-                    </div>
-                    <div className={`confidence ${getConfidenceColor(prediction.confidence_level)}`}>
-                      NN {prediction.probability_percent.toFixed(0)}%
-                    </div>
-                    <div className={`risk-level ${getRiskColorText(prediction.risk_level)}`}>
-                      {prediction.risk_level.toUpperCase()}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* Risk Legend */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '2rem',
+            marginBottom: '2rem',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{
+                width: '1rem',
+                height: '1rem',
+                borderRadius: '0.25rem',
+                background: 'linear-gradient(to right, #3b82f6, #0ea5e9)'
+              }}></div>
+              <span>Low Risk (MAG 2.0-4.0)</span>
             </div>
-          ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{
+                width: '1rem',
+                height: '1rem',
+                borderRadius: '0.25rem',
+                background: 'linear-gradient(to right, #f59e0b, #fbbf24)'
+              }}></div>
+              <span>Medium Risk (MAG 4.0-6.0)</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{
+                width: '1rem',
+                height: '1rem',
+                borderRadius: '0.25rem',
+                background: 'linear-gradient(to right, #ef4444, #dc2626)'
+              }}></div>
+              <span>High Risk (MAG 6.0+)</span>
+            </div>
+          </div>
 
-          <div className="action-buttons">
-            <button className="btn btn-primary" onClick={onNext}>
-              ⚠️ View Cymatic Visualization
+          {/* Week 1 */}
+          <div style={{
+            gridColumn: 'span 7',
+            textAlign: 'center',
+            fontWeight: '600',
+            color: '#fbbf24',
+            padding: '0.5rem',
+            background: 'rgba(251, 191, 36, 0.1)',
+            borderRadius: '0.25rem',
+            marginBottom: '0.5rem'
+          }}>Week 1 - September 17-23, 2025</div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '0.5rem',
+            marginBottom: '2rem'
+          }}>
+            {predictions.slice(0, 7).map((prediction) => (
+              <div key={prediction.day} style={{
+                background: prediction.risk === 'low' 
+                  ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(14, 165, 233, 0.1))'
+                  : prediction.risk === 'medium'
+                  ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1))'
+                  : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1))',
+                border: `1px solid ${
+                  prediction.risk === 'low' ? '#3b82f6' 
+                  : prediction.risk === 'medium' ? '#f59e0b' 
+                  : '#ef4444'
+                }`,
+                borderRadius: '0.5rem',
+                padding: '1rem',
+                textAlign: 'center',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}>
+                <div style={{
+                  fontSize: '0.875rem',
+                  color: '#94a3b8',
+                  marginBottom: '0.5rem'
+                }}>Day {prediction.day}</div>
+                <div style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold',
+                  marginBottom: '0.25rem'
+                }}>MAG {prediction.mag}</div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  opacity: 0.8
+                }}>NN {prediction.conf}%</div>
+                <div style={{
+                  width: '100%',
+                  height: '4px',
+                  borderRadius: '2px',
+                  marginTop: '0.5rem',
+                  background: prediction.risk === 'low' 
+                    ? 'linear-gradient(to right, #3b82f6, #0ea5e9)'
+                    : prediction.risk === 'medium'
+                    ? 'linear-gradient(to right, #f59e0b, #fbbf24)'
+                    : 'linear-gradient(to right, #ef4444, #dc2626)'
+                }}></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Week 2 */}
+          <div style={{
+            gridColumn: 'span 7',
+            textAlign: 'center',
+            fontWeight: '600',
+            color: '#fbbf24',
+            padding: '0.5rem',
+            background: 'rgba(251, 191, 36, 0.1)',
+            borderRadius: '0.25rem',
+            marginBottom: '0.5rem'
+          }}>Week 2 - September 24-30, 2025</div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '0.5rem',
+            marginBottom: '2rem'
+          }}>
+            {predictions.slice(7, 14).map((prediction) => (
+              <div key={prediction.day} style={{
+                background: prediction.risk === 'low' 
+                  ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(14, 165, 233, 0.1))'
+                  : prediction.risk === 'medium'
+                  ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1))'
+                  : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1))',
+                border: `1px solid ${
+                  prediction.risk === 'low' ? '#3b82f6' 
+                  : prediction.risk === 'medium' ? '#f59e0b' 
+                  : '#ef4444'
+                }`,
+                borderRadius: '0.5rem',
+                padding: '1rem',
+                textAlign: 'center',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}>
+                <div style={{
+                  fontSize: '0.875rem',
+                  color: '#94a3b8',
+                  marginBottom: '0.5rem'
+                }}>Day {prediction.day}</div>
+                <div style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold',
+                  marginBottom: '0.25rem'
+                }}>MAG {prediction.mag}</div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  opacity: 0.8
+                }}>NN {prediction.conf}%</div>
+                <div style={{
+                  width: '100%',
+                  height: '4px',
+                  borderRadius: '2px',
+                  marginTop: '0.5rem',
+                  background: prediction.risk === 'low' 
+                    ? 'linear-gradient(to right, #3b82f6, #0ea5e9)'
+                    : prediction.risk === 'medium'
+                    ? 'linear-gradient(to right, #f59e0b, #fbbf24)'
+                    : 'linear-gradient(to right, #ef4444, #dc2626)'
+                }}></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Week 3 */}
+          <div style={{
+            gridColumn: 'span 7',
+            textAlign: 'center',
+            fontWeight: '600',
+            color: '#fbbf24',
+            padding: '0.5rem',
+            background: 'rgba(251, 191, 36, 0.1)',
+            borderRadius: '0.25rem',
+            marginBottom: '0.5rem'
+          }}>Week 3 - October 1-7, 2025</div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '0.5rem',
+            marginBottom: '2rem'
+          }}>
+            {predictions.slice(14, 21).map((prediction) => (
+              <div key={prediction.day} style={{
+                background: prediction.risk === 'low' 
+                  ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(14, 165, 233, 0.1))'
+                  : prediction.risk === 'medium'
+                  ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1))'
+                  : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1))',
+                border: `1px solid ${
+                  prediction.risk === 'low' ? '#3b82f6' 
+                  : prediction.risk === 'medium' ? '#f59e0b' 
+                  : '#ef4444'
+                }`,
+                borderRadius: '0.5rem',
+                padding: '1rem',
+                textAlign: 'center',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}>
+                <div style={{
+                  fontSize: '0.875rem',
+                  color: '#94a3b8',
+                  marginBottom: '0.5rem'
+                }}>Day {prediction.day}</div>
+                <div style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold',
+                  marginBottom: '0.25rem'
+                }}>MAG {prediction.mag}</div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  opacity: 0.8
+                }}>NN {prediction.conf}%</div>
+                <div style={{
+                  width: '100%',
+                  height: '4px',
+                  borderRadius: '2px',
+                  marginTop: '0.5rem',
+                  background: prediction.risk === 'low' 
+                    ? 'linear-gradient(to right, #3b82f6, #0ea5e9)'
+                    : prediction.risk === 'medium'
+                    ? 'linear-gradient(to right, #f59e0b, #fbbf24)'
+                    : 'linear-gradient(to right, #ef4444, #dc2626)'
+                }}></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <button 
+              onClick={onNext}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(to right, #8b5cf6, #6366f1)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              🌊 View Cymatic Visualization
+            </button>
+            <button 
+              onClick={onChangeLocation}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'rgba(75, 85, 99, 0.8)',
+                color: 'white',
+                border: '1px solid #6b7280',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              📍 Change Location
+            </button>
+            <button 
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'rgba(75, 85, 99, 0.8)',
+                color: 'white',
+                border: '1px solid #6b7280',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              📊 Export Data
             </button>
           </div>
         </div>
