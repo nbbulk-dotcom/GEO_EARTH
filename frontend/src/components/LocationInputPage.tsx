@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { MapPin, RotateCcw } from 'lucide-react';
+import { MapPin, Search, Navigation, CheckCircle } from 'lucide-react';
+import axios from 'axios';
 import { useData } from '../contexts/DataContext';
 
 interface LocationInputPageProps {
@@ -7,355 +8,272 @@ interface LocationInputPageProps {
 }
 
 const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
-  const { location, setLocation } = useData();
-  const [inputMode] = useState<'coordinates' | 'city'>('coordinates');
-  const [latitude, setLatitude] = useState(location?.latitude?.toString() || '40.7128');
-  const [longitude, setLongitude] = useState(location?.longitude?.toString() || '-74.0060');
-  const [cityName, setCityName] = useState(location?.location_name || '');
+  const { setLocation } = useData();
+  const [inputType, setInputType] = useState<'coordinates' | 'city' | 'auto'>('coordinates');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
-  const [radiusKm, setRadiusKm] = useState(location?.radius_km || 500);
+  const [radiusKm, setRadiusKm] = useState(100);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
-  const handleReset = () => {
-    setLatitude('40.7128');
-    setLongitude('-74.0060');
-    setCityName('');
-    setCountry('');
-    setRadiusKm(500);
-  };
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-  const handleConfirmLocation = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
-    
+    setError('');
+
     try {
-      let lat: number, lng: number, locationName: string;
-      
-      if (inputMode === 'coordinates') {
-        lat = parseFloat(latitude);
-        lng = parseFloat(longitude);
-        locationName = `${lat.toFixed(4)}°N, ${Math.abs(lng).toFixed(4)}°W (New York, NY)`;
-      } else {
-        lat = 40.7128;
-        lng = -74.0060;
-        locationName = cityName + (country ? `, ${country}` : '');
+      let requestData: any = {};
+
+      if (inputType === 'coordinates') {
+        if (!latitude || !longitude) {
+          throw new Error('Please enter both latitude and longitude');
+        }
+        requestData = {
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude)
+        };
+      } else if (inputType === 'city') {
+        if (!city) {
+          throw new Error('Please enter a city name');
+        }
+        requestData = {
+          city,
+          country: country || undefined
+        };
+      } else if (inputType === 'auto') {
+        requestData = {
+          auto_detect: true
+        };
       }
-      
-      setLocation({
-        latitude: lat,
-        longitude: lng,
-        location_name: locationName,
-        radius_km: radiusKm
+
+      const response = await axios.post(`${API_BASE_URL}/api/location/resolve`, requestData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
-      onNext();
-    } catch (error) {
-      console.error('Error setting location:', error);
+      const locationData = {
+        latitude: response.data.latitude,
+        longitude: response.data.longitude,
+        location_name: response.data.location_name,
+        radius_km: radiusKm
+      };
+
+      setLocation(locationData);
+      setIsConfirmed(true);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Location resolution failed');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isValidCoordinates = () => {
-    const lat = parseFloat(latitude);
-    const lng = parseFloat(longitude);
-    return !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+  const handleAutoDetect = async () => {
+    setInputType('auto');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/location/resolve`, {
+        auto_detect: true
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const locationData = {
+        latitude: response.data.latitude,
+        longitude: response.data.longitude,
+        location_name: response.data.location_name,
+        radius_km: radiusKm
+      };
+
+      setLocation(locationData);
+      setIsConfirmed(true);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Auto-detection failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const isValidCity = () => {
-    return cityName.trim().length > 0;
-  };
-
-  const canConfirm = inputMode === 'coordinates' ? isValidCoordinates() : isValidCity();
+  if (isConfirmed) {
+    return (
+      <div className="text-center">
+        <div className="flex items-center justify-center mb-4">
+          <CheckCircle className="w-8 h-8 text-green-400 mr-3" />
+          <h2 className="text-2xl font-semibold text-white">Location Confirmed</h2>
+        </div>
+        <p className="text-gray-300 mb-2">Location has been set successfully.</p>
+        <button
+          onClick={() => setIsConfirmed(false)}
+          className="text-yellow-400 hover:text-yellow-300 underline mr-4"
+        >
+          Change Location
+        </button>
+        <button
+          onClick={onNext}
+          className="bg-yellow-600 text-black px-4 py-2 rounded-lg hover:bg-yellow-500 transition-colors"
+        >
+          Continue to Engine Selection
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white">
-      <style>{`
-        .header {
-          background: rgba(30, 41, 59, 0.8);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-          padding: 1rem 0;
-        }
-        .header-content {
-          max-width: 1200px;
-          margin: 0 auto;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 2rem;
-        }
-        .logo {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #fbbf24;
-        }
-        .user-info {
-          font-size: 0.875rem;
-          color: #94a3b8;
-        }
-        .progress-bar {
-          background: rgba(30, 41, 59, 0.8);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-          padding: 1rem 0;
-        }
-        .progress-steps {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 2rem;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        .progress-step {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-        }
-        .progress-step.active {
-          color: #fbbf24;
-          font-weight: 600;
-        }
-        .progress-step.completed {
-          color: #10b981;
-        }
-        .progress-step-number {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-        .progress-step.active .progress-step-number {
-          background: #fbbf24;
-          color: #1e293b;
-        }
-        .progress-step.completed .progress-step-number {
-          background: #10b981;
-          color: white;
-        }
-        .progress-step:not(.active):not(.completed) .progress-step-number {
-          background: rgba(148, 163, 184, 0.3);
-          color: #94a3b8;
-        }
-        .main-container {
-          background: rgba(30, 41, 59, 0.9);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 20px;
-          padding: 3rem;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-          max-width: 600px;
-          margin: 4rem auto;
-        }
-        .form-section {
-          background: rgba(15, 23, 42, 0.6);
-          border-radius: 12px;
-          padding: 2rem;
-          margin-bottom: 2rem;
-        }
-        .form-group {
-          margin-bottom: 1.5rem;
-        }
-        .form-label {
-          display: block;
-          margin-bottom: 0.5rem;
-          color: #e2e8f0;
-          font-weight: 500;
-        }
-        .form-input {
-          width: 100%;
-          padding: 0.75rem 1rem;
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 8px;
-          color: white;
-          font-size: 1rem;
-        }
-        .form-input:focus {
-          outline: none;
-          border-color: #fbbf24;
-          box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
-        }
-        .form-select {
-          width: 100%;
-          padding: 0.75rem 1rem;
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 8px;
-          color: white;
-          font-size: 1rem;
-          cursor: pointer;
-        }
-        .button-group {
-          display: flex;
-          gap: 1rem;
-          margin-top: 2rem;
-        }
-        .btn {
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .btn-secondary {
-          background: rgba(148, 163, 184, 0.2);
-          color: #e2e8f0;
-          border: 1px solid rgba(148, 163, 184, 0.3);
-        }
-        .btn-secondary:hover {
-          background: rgba(148, 163, 184, 0.3);
-        }
-        .btn-primary {
-          background: linear-gradient(135deg, #fbbf24, #f59e0b);
-          color: #1e293b;
-          flex: 1;
-          font-weight: 700;
-        }
-        .btn-primary:hover:not(:disabled) {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-        .btn-primary:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      `}</style>
+    <div>
+      <h2 className="text-2xl font-semibold mb-6 flex items-center text-white">
+        <MapPin className="w-6 h-6 mr-3 text-yellow-400" />
+        Location Input and Confirmation
+      </h2>
 
-      <div className="header">
-        <div className="header-content">
-          <div className="logo">BRETT System Interface</div>
-          <div className="user-info">
-            <div>User: Guest</div>
-            <div>Session Active</div>
-          </div>
+      <div className="mb-6">
+        <div className="flex space-x-4 mb-4">
+          <button
+            onClick={() => setInputType('coordinates')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              inputType === 'coordinates'
+                ? 'bg-yellow-600 text-black'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            Coordinates
+          </button>
+          <button
+            onClick={() => setInputType('city')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              inputType === 'city'
+                ? 'bg-yellow-600 text-black'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            City/Country
+          </button>
         </div>
+
+        <button
+          onClick={handleAutoDetect}
+          disabled={isLoading}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50"
+        >
+          <Navigation className="w-4 h-4 mr-2" />
+          Auto-Detect Location
+        </button>
       </div>
 
-      <div className="progress-bar">
-        <div className="progress-steps">
-          <div className="progress-step active">
-            <div className="progress-step-number">1</div>
-            <span>Location Input</span>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {inputType === 'coordinates' && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Latitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                placeholder="e.g., 40.7128"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Longitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                placeholder="e.g., -74.0060"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                required
+              />
+            </div>
           </div>
-          <div className="progress-step">
-            <div className="progress-step-number">2</div>
-            <span>Engine Selection</span>
+        )}
+
+        {inputType === 'city' && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                City
+              </label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="e.g., New York"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Country (Optional)
+              </label>
+              <input
+                type="text"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="e.g., United States"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+              />
+            </div>
           </div>
-          <div className="progress-step">
-            <div className="progress-step-number">3</div>
-            <span>Prediction Display</span>
-          </div>
-          <div className="progress-step">
-            <div className="progress-step-number">4</div>
-            <span>Cymatic Visualization</span>
-          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Monitoring Radius
+          </label>
+          <select
+            value={radiusKm}
+            onChange={(e) => setRadiusKm(parseInt(e.target.value))}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
+          >
+            <option value={100}>100 km</option>
+            <option value={200}>200 km</option>
+            <option value={500}>500 km</option>
+            <option value={1000}>1000 km</option>
+          </select>
         </div>
-      </div>
 
-      <div className="container mx-auto px-6">
-        <div className="main-container">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2 text-white">
-              Location Input
-            </h1>
-            <p className="text-slate-300">
-              Enter coordinates or city name for earthquake prediction analysis
-            </p>
+        {error && (
+          <div className="p-3 bg-red-900/50 border border-red-500 rounded-lg text-red-200">
+            {error}
           </div>
+        )}
 
-          <div className="form-section">
-            {inputMode === 'coordinates' ? (
+        {inputType !== 'auto' && (
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center px-4 py-3 bg-yellow-600 text-black font-semibold rounded-lg hover:bg-yellow-500 transition-colors disabled:opacity-50"
+          >
+            {isLoading ? (
               <>
-                <div className="form-group">
-                  <label className="form-label">Latitude</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    placeholder="e.g., 40.7128"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    step="any"
-                    min="-90"
-                    max="90"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Longitude</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    placeholder="e.g., -74.0060"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    step="any"
-                    min="-180"
-                    max="180"
-                  />
-                </div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                Resolving Location...
               </>
             ) : (
               <>
-                <div className="form-group">
-                  <label className="form-label">City</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g., New York"
-                    value={cityName}
-                    onChange={(e) => setCityName(e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Country (auto-detected)</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g., United States"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                  />
-                </div>
+                <Search className="w-4 h-4 mr-2" />
+                Confirm Location
               </>
             )}
-
-            <div className="form-group">
-              <label className="form-label">Radius (kilometers)</label>
-              <select
-                className="form-select"
-                value={radiusKm}
-                onChange={(e) => setRadiusKm(parseInt(e.target.value))}
-              >
-                <option value={100}>100 km</option>
-                <option value={200}>200 km</option>
-                <option value={500}>500 km</option>
-                <option value={1000}>1000 km</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="button-group">
-            <button className="btn btn-secondary" onClick={handleReset}>
-              <RotateCcw size={16} />
-              Reset to Default
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={handleConfirmLocation}
-              disabled={!canConfirm || isLoading}
-            >
-              <MapPin size={16} />
-              {isLoading ? 'Confirming...' : 'Confirm Location'}
-            </button>
-          </div>
-        </div>
-      </div>
+          </button>
+        )}
+      </form>
     </div>
   );
 };
