@@ -8,13 +8,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./brett_earthquake.db
+      - DATABASE_URL=postgresql://postgres:securepassword123@db:5432/brett_earthquake
       - DEBUG=false
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
       - backend_data:/app/data
     depends_on:
+      - db
       - redis
     restart: unless-stopped
 
