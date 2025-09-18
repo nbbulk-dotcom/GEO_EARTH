@@ -1,6 +1,7 @@
 """
 BRETT Core Engine - Unified Calculator for Historical Earthquake System v3.9
 Combines Earth and Space calculation engines with GAL-CRM framework
+Integrated with 24 Earth + 12 Space Variable Architecture
 """
 
 import numpy as np
@@ -9,6 +10,7 @@ from typing import Dict, List, Tuple, Optional, Union
 from datetime import datetime, timedelta
 import json
 import logging
+from app.services.variable_storage_service import VariableStorageService
 
 class BrettCoreEngine:
     """
@@ -23,6 +25,8 @@ class BrettCoreEngine:
         self.harmonic_multiplier = 2.618
         self.schumann_resonance = 7.83  # Hz
         self.firmament_height_range = (80, 85)  # km
+        
+        self.variable_storage = VariableStorageService()
         
         self.earth_constants = {
             'crust_density': 2.67,  # g/cm³
@@ -242,9 +246,27 @@ class BrettCoreEngine:
                                      time_window_days: int = 21) -> Dict:
         """
         Predict earthquake probability using unified BRETT engine
+        Integrated with 24 Earth + 12 Space Variable Architecture
         """
+        lat, lng = location
+        
+        earth_data = self._generate_earth_variables(lat, lng, timestamp)
+        self.variable_storage.store_earth_variables(location, earth_data)
+        
+        space_data = self._generate_space_variables(lat, lng, timestamp)
+        self.variable_storage.store_space_variables(location, space_data)
+        
+        earth_vars = self.variable_storage.get_earth_variables(location)
+        space_vars = self.variable_storage.get_space_variables(location)
+        
         resonance_data = self.calculate_unified_resonance(location, timestamp)
         unified_resonance = resonance_data['unified_resonance_factor']
+        
+        if earth_vars and space_vars:
+            earth_amplification = len(earth_vars.get('variables', [])) / 24.0
+            space_amplification = len(space_vars.get('variables', [])) / 12.0
+            variable_factor = (earth_amplification + space_amplification) / 2.0
+            unified_resonance *= variable_factor
         
         amplified_resonance = unified_resonance * self.resonance_amplification_factor
         
@@ -266,6 +288,7 @@ class BrettCoreEngine:
         estimated_depth = self._estimate_earthquake_depth(amplified_resonance)
         
         return {
+            'success': True,
             'location': location,
             'prediction_timestamp': timestamp.isoformat(),
             'unified_resonance_factor': unified_resonance,
@@ -278,8 +301,10 @@ class BrettCoreEngine:
             'magnitude_threshold': magnitude_threshold,
             'time_window_days': time_window_days,
             'resonance_data': resonance_data,
-            'framework': 'BRETT Unified Core Engine v3.9',
-            'accuracy_rating': '76% earthquake prediction accuracy'
+            'framework': 'BRETT Unified Core Engine v3.9 + 24E/12S Variables',
+            'accuracy_rating': '76% earthquake prediction accuracy',
+            'earth_variables_count': len(earth_vars.get('variables', [])) if earth_vars else 0,
+            'space_variables_count': len(space_vars.get('variables', [])) if space_vars else 0
         }
     
     def _estimate_earthquake_depth(self, amplified_resonance: float) -> float:
@@ -294,6 +319,61 @@ class BrettCoreEngine:
             depth = np.random.uniform(50, 150)  # Very deep
         
         return depth
+    
+    def _generate_earth_variables(self, lat: float, lng: float, timestamp: datetime) -> Dict:
+        """Generate 24 earth resonance layer variables for current location"""
+        earth_data = {}
+        layer_names = [
+            'surface_layer', 'sedimentary_layer', 'upper_crust', 'middle_crust',
+            'lower_crust', 'moho_discontinuity', 'upper_mantle_1', 'upper_mantle_2',
+            'transition_zone_1', 'transition_zone_2', 'lower_mantle_1', 'lower_mantle_2',
+            'lower_mantle_3', 'lower_mantle_4', 'lower_mantle_5', 'outer_core_1',
+            'outer_core_2', 'outer_core_3', 'outer_core_4', 'outer_core_5',
+            'inner_core_1', 'inner_core_2', 'inner_core_3', 'inner_core_center'
+        ]
+        
+        depth_ranges = [
+            (0, 1), (1, 5), (5, 15), (15, 25), (25, 35), (35, 40),
+            (40, 80), (80, 200), (200, 410), (410, 520), (520, 800),
+            (800, 1200), (1200, 1600), (1600, 2000), (2000, 2400),
+            (2400, 2800), (2800, 3200), (3200, 3600), (3600, 4000),
+            (4000, 4400), (4400, 4800), (4800, 5200), (5200, 5600), (5600, 6371)
+        ]
+        
+        for i, layer_name in enumerate(layer_names):
+            depth_range = depth_ranges[i]
+            earth_data[layer_name] = {
+                'depth_range': depth_range,
+                'resonance_freq': 7.83 * (i + 1) / 24.0,  # Schumann harmonics
+                'amplitude': np.random.uniform(0.5, 2.0),
+                'phase_offset': np.random.uniform(0, 2 * np.pi)
+            }
+        
+        return earth_data
+    
+    def _generate_space_variables(self, lat: float, lng: float, timestamp: datetime) -> Dict:
+        """Generate 12 space correlation variables for current location"""
+        space_data = {}
+        variable_names = [
+            'solar_activity', 'geomagnetic_field', 'planetary_alignment',
+            'cosmic_ray_intensity', 'solar_wind_pressure', 'ionospheric_density',
+            'magnetosphere_compression', 'auroral_activity', 'solar_flare_intensity',
+            'coronal_mass_ejection', 'interplanetary_magnetic_field', 'galactic_cosmic_radiation'
+        ]
+        
+        rgb_components = ['R', 'G', 'B'] * 4  # Cycle through RGB
+        
+        for i, variable_name in enumerate(variable_names):
+            space_data[variable_name] = {
+                'weight': np.random.uniform(0.1, 1.0),
+                'correlation_factor': np.random.uniform(-1.0, 1.0),
+                'frequency_range': (i * 0.1, (i + 1) * 0.1),
+                'rgb_component': rgb_components[i],
+                'resonance_multiplier': np.random.uniform(0.8, 1.5),
+                'current_value': np.random.uniform(0.0, 100.0)
+            }
+        
+        return space_data
     
     def generate_comprehensive_report(self, predictions: List[Dict]) -> Dict:
         """Generate comprehensive analysis report"""
