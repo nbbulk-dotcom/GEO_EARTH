@@ -35,7 +35,41 @@ class VolcanicLocator:
         
     def get_seismic_variables_from_earthquake_system(self, location: Tuple[float, float]) -> Dict:
         """Import 24 variables from earthquake system"""
-        return self.variable_storage.get_earth_variables(location)
+        try:
+            earth_vars = self.variable_storage.get_earth_variables(location)
+            space_vars = self.variable_storage.get_space_variables(location)
+            
+            if not earth_vars or not space_vars:
+                from app.core.brett_engine import BrettCoreEngine
+                from datetime import datetime
+                
+                engine = BrettCoreEngine()
+                lat, lng = location
+                
+                earth_data = engine._generate_earth_variables(lat, lng, datetime.utcnow())
+                space_data = engine._generate_space_variables(lat, lng, datetime.utcnow())
+                
+                engine.variable_storage.store_earth_variables(location, earth_data)
+                engine.variable_storage.store_space_variables(location, space_data)
+                
+                earth_vars = engine.variable_storage.get_earth_variables(location)
+                space_vars = engine.variable_storage.get_space_variables(location)
+            
+            return {
+                'earth_variables': earth_vars,
+                'space_variables': space_vars,
+                'total_variables': (len(earth_vars.get('variables', [])) if earth_vars else 0) + 
+                                 (len(space_vars.get('variables', [])) if space_vars else 0),
+                'success': True
+            }
+        except Exception as e:
+            return {
+                'earth_variables': None,
+                'space_variables': None,
+                'total_variables': 0,
+                'success': False,
+                'error': str(e)
+            }
         
     def _get_velocity_at_depth(self, depth: float) -> float:
         """Calculate seismic velocity at given depth using PREM model"""
