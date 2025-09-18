@@ -16,10 +16,11 @@ interface DataSource {
   reliability_percent: number;
 }
 
-
 interface DataContextType {
   location: LocationData | null;
   setLocation: (location: LocationData) => void;
+  volcanicLocation: LocationData | null;
+  setVolcanicLocation: (location: LocationData) => void;
   dataSourcesStatus: DataSource[];
   predictions: any[];
   setPredictions: (predictions: any[]) => void;
@@ -45,6 +46,7 @@ interface DataProviderProps {
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [location, setLocation] = useState<LocationData | null>(null);
+  const [volcanicLocation, setVolcanicLocation] = useState<LocationData | null>(null);
   const [dataSourcesStatus, setDataSourcesStatus] = useState<DataSource[]>([]);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -107,6 +109,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const value: DataContextType = {
     location,
     setLocation,
+    volcanicLocation,
+    setVolcanicLocation,
     dataSourcesStatus,
     predictions,
     setPredictions,

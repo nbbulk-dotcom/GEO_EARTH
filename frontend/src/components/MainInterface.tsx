@@ -1,7 +1,7 @@
 // BRETT MainInterface v3.0.0 - Sequential Navigation Flow
 import React, { useState, useEffect } from 'react';
 import { MapPin, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
-import EarthquakeLocationInput from './EarthquakeLocationInput';
+import ElocationInput from './EarthquakeLocationInput';
 import DataSourceStatus from './DataSourceStatus';
 import EngineSelection from './EngineSelection';
 import PredictionDisplay from './PredictionDisplay';
@@ -226,7 +226,7 @@ const MainInterface: React.FC<MainInterfaceProps> = ({ onBackToLanding: _onBackT
                 {/* Step 1: Location Input - Only show when step 1 is active */}
                 {steps[0]?.active && (
                   <div className="bg-black/30 backdrop-blur-lg rounded-2xl p-8 border border-white/10">
-                    <EarthquakeLocationInput />
+                    <ElocationInput />
                   </div>
                 )}
 

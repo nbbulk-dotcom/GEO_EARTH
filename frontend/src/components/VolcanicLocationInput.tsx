@@ -3,8 +3,8 @@ import { MapPin, Search, Navigation, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { useData } from '../contexts/DataContext';
 
-const ElocationInput: React.FC = () => {
-  const { setLocation } = useData();
+const VlocationInput: React.FC = () => {
+  const { setVolcanicLocation } = useData();
   const [inputType, setInputType] = useState<'coordinates' | 'city' | 'auto'>('coordinates');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
@@ -15,7 +15,7 @@ const ElocationInput: React.FC = () => {
   const [error, setError] = useState('');
   const [isConfirmed, setIsConfirmed] = useState(false);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +47,7 @@ const ElocationInput: React.FC = () => {
         };
       }
 
-      const response = await axios.post(`${API_BASE_URL}/api/location/resolve`, requestData, {
+      const response = await axios.post(`${API_BASE_URL}/api/volcanic/location/resolve`, requestData, {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -60,10 +60,10 @@ const ElocationInput: React.FC = () => {
         radius_km: radiusKm
       };
 
-      setLocation(locationData);
+      setVolcanicLocation(locationData);
       setIsConfirmed(true);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Location resolution failed');
+      setError(err.response?.data?.detail || err.message || 'Volcanic location resolution failed');
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +75,7 @@ const ElocationInput: React.FC = () => {
     setError('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/location/resolve`, {
+      const response = await axios.post(`${API_BASE_URL}/api/volcanic/location/resolve`, {
         auto_detect: true
       }, {
         headers: {
@@ -90,10 +90,10 @@ const ElocationInput: React.FC = () => {
         radius_km: radiusKm
       };
 
-      setLocation(locationData);
+      setVolcanicLocation(locationData);
       setIsConfirmed(true);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Auto-detection failed');
+      setError(err.response?.data?.detail || err.message || 'Volcanic auto-detection failed');
     } finally {
       setIsLoading(false);
     }
@@ -104,12 +104,12 @@ const ElocationInput: React.FC = () => {
       <div className="text-center">
         <div className="flex items-center justify-center mb-4">
           <CheckCircle className="w-8 h-8 text-green-400 mr-3" />
-          <h2 className="text-2xl font-semibold text-white">Earthquake Location Confirmed</h2>
+          <h2 className="text-2xl font-semibold text-white">Volcanic Location Confirmed</h2>
         </div>
-        <p className="text-gray-300 mb-2">Earthquake monitoring location has been set successfully.</p>
+        <p className="text-gray-300 mb-2">Volcanic monitoring location has been set successfully.</p>
         <button
           onClick={() => setIsConfirmed(false)}
-          className="text-yellow-400 hover:text-yellow-300 underline"
+          className="text-red-400 hover:text-red-300 underline"
         >
           Change Location
         </button>
@@ -120,8 +120,8 @@ const ElocationInput: React.FC = () => {
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-6 flex items-center text-white">
-        <MapPin className="w-6 h-6 mr-3 text-yellow-400" />
-        Earthquake Location Input and Confirmation
+        <MapPin className="w-6 h-6 mr-3 text-red-400" />
+        Volcanic Location Input and Confirmation
       </h2>
 
       <div className="mb-6">
@@ -130,7 +130,7 @@ const ElocationInput: React.FC = () => {
             onClick={() => setInputType('coordinates')}
             className={`px-4 py-2 rounded-lg transition-colors ${
               inputType === 'coordinates'
-                ? 'bg-yellow-600 text-black'
+                ? 'bg-red-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
@@ -140,7 +140,7 @@ const ElocationInput: React.FC = () => {
             onClick={() => setInputType('city')}
             className={`px-4 py-2 rounded-lg transition-colors ${
               inputType === 'city'
-                ? 'bg-yellow-600 text-black'
+                ? 'bg-red-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
@@ -151,7 +151,7 @@ const ElocationInput: React.FC = () => {
         <button
           onClick={handleAutoDetect}
           disabled={isLoading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50"
+          className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-500 transition-colors disabled:opacity-50"
         >
           <Navigation className="w-4 h-4 mr-2" />
           Auto-Detect Location
@@ -170,8 +170,8 @@ const ElocationInput: React.FC = () => {
                 step="any"
                 value={latitude}
                 onChange={(e) => setLatitude(e.target.value)}
-                placeholder="e.g., 40.7128"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                placeholder="e.g., 19.4"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-red-400 focus:outline-none"
                 required
               />
             </div>
@@ -184,8 +184,8 @@ const ElocationInput: React.FC = () => {
                 step="any"
                 value={longitude}
                 onChange={(e) => setLongitude(e.target.value)}
-                placeholder="e.g., -74.0060"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                placeholder="e.g., -155.6"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-red-400 focus:outline-none"
                 required
               />
             </div>
@@ -202,8 +202,8 @@ const ElocationInput: React.FC = () => {
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g., New York"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                placeholder="e.g., Hilo"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-red-400 focus:outline-none"
                 required
               />
             </div>
@@ -216,7 +216,7 @@ const ElocationInput: React.FC = () => {
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 placeholder="e.g., United States"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-red-400 focus:outline-none"
               />
             </div>
           </div>
@@ -229,12 +229,12 @@ const ElocationInput: React.FC = () => {
           <select
             value={radiusKm}
             onChange={(e) => setRadiusKm(parseInt(e.target.value))}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-red-400 focus:outline-none"
           >
+            <option value={50}>50 km</option>
             <option value={100}>100 km</option>
             <option value={200}>200 km</option>
             <option value={500}>500 km</option>
-            <option value={1000}>1000 km</option>
           </select>
         </div>
 
@@ -248,17 +248,17 @@ const ElocationInput: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center px-4 py-3 bg-yellow-600 text-black font-semibold rounded-lg hover:bg-yellow-500 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50"
           >
             {isLoading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
-                Resolving Location...
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Resolving Volcanic Location...
               </>
             ) : (
               <>
                 <Search className="w-4 h-4 mr-2" />
-                Confirm Location
+                Confirm Volcanic Location
               </>
             )}
           </button>
@@ -268,4 +268,4 @@ const ElocationInput: React.FC = () => {
   );
 };
 
-export default ElocationInput;
+export default VlocationInput;

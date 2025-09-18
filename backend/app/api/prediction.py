@@ -240,6 +240,80 @@ async def generate_cymatic_visualization(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cymatic visualization failed: {str(e)}")
 
+@router.post("/volcanic/location/resolve")
+async def resolve_volcanic_location(request: dict):
+    """Resolve volcanic location independently from earthquake system"""
+    try:
+        if request.get('auto_detect'):
+            return {
+                'latitude': 19.4,
+                'longitude': -155.6,
+                'location_name': 'Kilauea, Hawaii (Auto-detected)',
+                'success': True
+            }
+        elif 'latitude' in request and 'longitude' in request:
+            lat = float(request['latitude'])
+            lng = float(request['longitude'])
+            
+            volcanic_regions = {
+                (19.4, -155.6): 'Kilauea, Hawaii',
+                (40.8, 14.4): 'Mount Vesuvius, Italy', 
+                (35.4, 138.7): 'Mount Fuji, Japan',
+                (-6.2, 106.8): 'Mount Merapi, Indonesia',
+                (14.8, -61.2): 'Mount Pelée, Martinique',
+                (-15.0, -75.0): 'Ubinas, Peru',
+                (64.0, -17.0): 'Hekla, Iceland',
+                (37.7, 15.0): 'Mount Etna, Italy',
+                (38.8, 15.2): 'Stromboli, Italy'
+            }
+            
+            closest_name = f"Volcanic Region ({lat:.2f}, {lng:.2f})"
+            min_distance = float('inf')
+            
+            for (v_lat, v_lng), name in volcanic_regions.items():
+                distance = ((lat - v_lat) ** 2 + (lng - v_lng) ** 2) ** 0.5
+                if distance < min_distance and distance < 5.0:  # Within 5 degrees
+                    min_distance = distance
+                    closest_name = name
+            
+            return {
+                'latitude': lat,
+                'longitude': lng,
+                'location_name': closest_name,
+                'success': True
+            }
+        elif 'city' in request:
+            city = request['city'].lower()
+            country = request.get('country', '').lower()
+            
+            volcanic_city_coords = {
+                'hilo': (19.4, -155.6, 'Hilo, Hawaii (near Kilauea)'),
+                'naples': (40.8, 14.4, 'Naples, Italy (near Vesuvius)'),
+                'tokyo': (35.4, 138.7, 'Tokyo, Japan (near Mount Fuji)'),
+                'yogyakarta': (-6.2, 106.8, 'Yogyakarta, Indonesia (near Merapi)'),
+                'fort-de-france': (14.8, -61.2, 'Fort-de-France, Martinique (near Pelée)'),
+                'arequipa': (-15.0, -75.0, 'Arequipa, Peru (near Ubinas)'),
+                'reykjavik': (64.0, -17.0, 'Reykjavik, Iceland (near Hekla)'),
+                'catania': (37.7, 15.0, 'Catania, Italy (near Etna)'),
+                'messina': (38.8, 15.2, 'Messina, Italy (near Stromboli)')
+            }
+            
+            if city in volcanic_city_coords:
+                lat, lng, name = volcanic_city_coords[city]
+                return {
+                    'latitude': lat,
+                    'longitude': lng,
+                    'location_name': name,
+                    'success': True
+                }
+            else:
+                raise HTTPException(status_code=404, detail=f"Volcanic region not found for city: {city}")
+        else:
+            raise HTTPException(status_code=400, detail="Invalid volcanic location request format")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Volcanic location resolution failed: {str(e)}")
+
 @router.get("/volcano/forecast/{volcano_id}")
 async def get_volcanic_forecast(volcano_id: str):
     """Get 21-day volcanic eruption forecast"""

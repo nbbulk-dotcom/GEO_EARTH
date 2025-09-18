@@ -8,6 +8,7 @@ import VolcanicUI from './components/VolcanicUI'
 import MainInterface from './components/MainInterface'
 import VolcanicMainInterface from './components/VolcanicMainInterface'
 import LocationInputPage from './components/LocationInputPage'
+import VolcanicLocationInputPage from './components/VolcanicLocationInputPage'
 import EngineSelectionPage from './components/EngineSelectionPage'
 import PredictionDisplayPage from './components/PredictionDisplayPage'
 import CymaticVisualizationPage from './components/CymaticVisualizationPage'
@@ -170,7 +171,7 @@ function App() {
       case 'landing':
         return <VolcanicLandingPage onEnterSystem={() => handleEnterSystem('volcanic')} onBackToUnified={handleBackToUnified} />
       case 'location':
-        return <LocationInputPage onNext={handleVolcanicNextPage} />
+        return <VolcanicLocationInputPage onNext={handleVolcanicNextPage} />
       case 'engine':
         return (
           <VolcanicUI 
