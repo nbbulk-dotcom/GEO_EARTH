@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text } from '@react-three/drei';
 import * as THREE from 'three';
-import { AlertTriangle, Volume2, VolumeX, Download, Settings } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 import { useData } from '../contexts/DataContext';
 
@@ -134,12 +134,11 @@ const CymaticVisualizationPage: React.FC<CymaticVisualizationPageProps> = ({ onB
   const [error, setError] = useState('');
   const [time, setTime] = useState(0);
   const [alertSound, setAlertSound] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled] = useState(true);
   
   const [waveAmplitude, setWaveAmplitude] = useState(2.0);
   const [frequencyRange, setFrequencyRange] = useState<[number, number]>([0.1, 1.0]);
   const [visualizationMode, setVisualizationMode] = useState('seismic');
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -223,13 +222,32 @@ const CymaticVisualizationPage: React.FC<CymaticVisualizationPageProps> = ({ onB
     oscillator.stop(audioContext.currentTime + 1.5);
   };
 
-  const exportVisualization = () => {
-    console.log('Exporting visualization...');
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white">
       <style>{`
+        .header {
+          background: rgba(30, 41, 59, 0.8);
+          border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+          padding: 1rem 0;
+        }
+        .header-content {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0 2rem;
+        }
+        .logo {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #fbbf24;
+        }
+        .user-info {
+          font-size: 0.875rem;
+          color: #94a3b8;
+        }
         .main-container {
           background: rgba(30, 41, 59, 0.9);
           backdrop-filter: blur(20px);
@@ -240,26 +258,70 @@ const CymaticVisualizationPage: React.FC<CymaticVisualizationPageProps> = ({ onB
           max-width: 1400px;
           margin: 2rem auto;
         }
+        .visualization-container {
+          background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6));
+          border: 1px solid rgba(148, 163, 184, 0.3);
+          border-radius: 12px;
+          overflow: hidden;
+          height: 500px;
+          margin-bottom: 2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+        .visualization-placeholder {
+          text-align: center;
+          color: #94a3b8;
+        }
+        .visualization-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #3b82f6;
+          margin-bottom: 0.5rem;
+        }
+        .visualization-subtitle {
+          font-size: 0.875rem;
+          color: #64748b;
+        }
         .controls-panel {
           background: rgba(15, 23, 42, 0.6);
           border-radius: 12px;
           padding: 1.5rem;
           margin-bottom: 2rem;
         }
+        .control-row {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 2rem;
+          margin-bottom: 2rem;
+        }
         .control-group {
           display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 1rem;
+          flex-direction: column;
+          gap: 0.5rem;
         }
         .control-label {
-          min-width: 120px;
           color: #e2e8f0;
           font-weight: 500;
+          font-size: 0.875rem;
         }
         .control-input {
-          flex: 1;
-          max-width: 200px;
+          padding: 0.5rem;
+          background: rgba(15, 23, 42, 0.6);
+          border: 1px solid rgba(148, 163, 184, 0.3);
+          border-radius: 6px;
+          color: white;
+          font-size: 0.875rem;
+        }
+        .control-select {
+          padding: 0.5rem;
+          background: rgba(15, 23, 42, 0.6);
+          border: 1px solid rgba(148, 163, 184, 0.3);
+          border-radius: 6px;
+          color: white;
+          font-size: 0.875rem;
+          cursor: pointer;
         }
         .day-selector {
           display: grid;
@@ -278,123 +340,159 @@ const CymaticVisualizationPage: React.FC<CymaticVisualizationPageProps> = ({ onB
           font-size: 0.875rem;
         }
         .day-button:hover {
-          border-color: #3b82f6;
+          border-color: #fbbf24;
         }
         .day-button.active {
-          background: #3b82f6;
-          border-color: #3b82f6;
-          color: white;
-        }
-        .visualization-container {
-          background: #000;
-          border-radius: 12px;
-          overflow: hidden;
-          height: 600px;
-          margin-bottom: 2rem;
-        }
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1rem;
-          margin-top: 2rem;
-        }
-        .stat-card {
-          background: rgba(15, 23, 42, 0.6);
-          border-radius: 12px;
-          padding: 1.5rem;
-        }
-        .stat-title {
+          background: #fbbf24;
+          border-color: #fbbf24;
+          color: #1e293b;
           font-weight: 600;
-          color: white;
-          margin-bottom: 1rem;
         }
-        .stat-content {
-          font-size: 0.875rem;
-          color: #94a3b8;
-          line-height: 1.5;
-        }
-        .alert-banner {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.3);
-          border-radius: 12px;
-          padding: 1.5rem;
+        .resonance-displays {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          gap: 1rem;
           margin-bottom: 2rem;
-          animation: pulse 2s infinite;
         }
-        .btn {
-          padding: 0.5rem 1rem;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-        }
-        .btn-primary {
-          background: #3b82f6;
-          color: white;
-        }
-        .btn-primary:hover {
-          background: #2563eb;
-        }
-        .btn-secondary {
-          background: rgba(148, 163, 184, 0.2);
-          color: #e2e8f0;
+        .resonance-card {
+          background: rgba(15, 23, 42, 0.6);
           border: 1px solid rgba(148, 163, 184, 0.3);
+          border-radius: 8px;
+          padding: 1rem;
+          text-align: center;
         }
-        .btn-secondary:hover {
-          background: rgba(148, 163, 184, 0.3);
+        .resonance-value {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #fbbf24;
+          margin-bottom: 0.25rem;
         }
-        .btn-success {
-          background: #10b981;
-          color: white;
+        .resonance-label {
+          font-size: 0.75rem;
+          color: #94a3b8;
         }
-        .btn-success:hover {
-          background: #059669;
-        }
-        .btn-danger {
-          background: #ef4444;
-          color: white;
-        }
-        .btn-danger:hover {
-          background: #dc2626;
+        .resonance-mode {
+          font-size: 0.625rem;
+          color: #64748b;
         }
       `}</style>
 
+      <div className="header">
+        <div className="header-content">
+          <div className="logo">BRETT System Interface</div>
+          <div className="user-info">
+            <div>User: Guest</div>
+            <div>Session Active</div>
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-6">
         <div className="main-container">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-blue-400 rounded"></div>
-              3D Cymatic Visualization
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-3">
+              🌊 Cymatic Wave Field Visualization
             </h1>
-            
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`btn ${soundEnabled ? 'btn-success' : 'btn-secondary'}`}
-              >
-                {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-                {soundEnabled ? 'Sound On' : 'Sound Off'}
-              </button>
-              
-              <button
-                onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                className="btn btn-secondary"
-              >
-                <Settings size={16} />
-                Advanced
-              </button>
-              
-              <button
-                onClick={exportVisualization}
-                className="btn btn-primary"
-              >
-                <Download size={16} />
-                Export
-              </button>
+            <p className="text-slate-300">
+              12-Dimensional GAL-CRM Framework v4.0
+            </p>
+          </div>
+
+          <div className="visualization-container">
+            <div className="visualization-placeholder">
+              <div className="visualization-title">3D Seismic Wave Field</div>
+              <div className="visualization-subtitle">Real-time cymatic pattern analysis</div>
+            </div>
+          </div>
+
+          <div className="resonance-displays">
+            <div className="resonance-card">
+              <div className="resonance-value">7.83 Hz</div>
+              <div className="resonance-label">Schumann Resonance</div>
+              <div className="resonance-mode">First Mode</div>
+            </div>
+            <div className="resonance-card">
+              <div className="resonance-value">14.3 Hz</div>
+              <div className="resonance-label">Second Mode</div>
+            </div>
+            <div className="resonance-card">
+              <div className="resonance-value">20.8 Hz</div>
+              <div className="resonance-label">Third Mode</div>
+            </div>
+            <div className="resonance-card">
+              <div className="resonance-value">27.3 Hz</div>
+              <div className="resonance-label">Fourth Mode</div>
+            </div>
+          </div>
+
+          <div className="controls-panel">
+            <div className="control-row">
+              <div className="control-group">
+                <label className="control-label">Wave Amplitude</label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="5.0"
+                  step="0.1"
+                  value={waveAmplitude}
+                  onChange={(e) => setWaveAmplitude(parseFloat(e.target.value))}
+                  className="control-input"
+                />
+              </div>
+              <div className="control-group">
+                <label className="control-label">Frequency Range</label>
+                <select
+                  value={`${frequencyRange[0]}-${frequencyRange[1]}`}
+                  onChange={(e) => {
+                    const [min, max] = e.target.value.split('-').map(Number);
+                    setFrequencyRange([min, max]);
+                  }}
+                  className="control-select"
+                >
+                  <option value="0.50-1.00">0.50 Hz (Full Spectrum)</option>
+                  <option value="7.83-14.3">7.83-14.3 Hz (Schumann)</option>
+                  <option value="20.8-27.3">20.8-27.3 Hz (Higher Modes)</option>
+                </select>
+              </div>
+              <div className="control-group">
+                <label className="control-label">Visualization Mode</label>
+                <select
+                  value={visualizationMode}
+                  onChange={(e) => setVisualizationMode(e.target.value)}
+                  className="control-select"
+                >
+                  <option value="seismic">3D Wave Field</option>
+                  <option value="electromagnetic">EM Field</option>
+                  <option value="harmonic">Harmonic Resonance</option>
+                </select>
+              </div>
+              <div className="control-group">
+                <label className="control-label">Time Window</label>
+                <select
+                  value={selectedDay}
+                  onChange={(e) => setSelectedDay(parseInt(e.target.value))}
+                  className="control-select"
+                >
+                  <option value="1">Real-time</option>
+                  <option value="7">7-day Average</option>
+                  <option value="21">21-day Composite</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="control-group">
+              <span className="control-label">Day Selection:</span>
+              <div className="day-selector">
+                {Array.from({ length: 21 }, (_, i) => i + 1).map(day => (
+                  <button
+                    key={day}
+                    className={`day-button ${selectedDay === day ? 'active' : ''}`}
+                    onClick={() => setSelectedDay(day)}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -411,68 +509,6 @@ const CymaticVisualizationPage: React.FC<CymaticVisualizationPageProps> = ({ onB
               </div>
             </div>
           )}
-
-          <div className="controls-panel">
-            <div className="control-group">
-              <span className="control-label">Time Window:</span>
-              <div className="day-selector">
-                {Array.from({ length: 21 }, (_, i) => i + 1).map(day => (
-                  <button
-                    key={day}
-                    className={`day-button ${selectedDay === day ? 'active' : ''}`}
-                    onClick={() => setSelectedDay(day)}
-                  >
-                    Day {day}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {showAdvancedSettings && (
-              <>
-                <div className="control-group">
-                  <label className="control-label">Wave Amplitude:</label>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="5.0"
-                    step="0.1"
-                    value={waveAmplitude}
-                    onChange={(e) => setWaveAmplitude(parseFloat(e.target.value))}
-                    className="control-input"
-                  />
-                  <span className="text-sm text-gray-300">{waveAmplitude.toFixed(1)}</span>
-                </div>
-
-                <div className="control-group">
-                  <label className="control-label">Frequency Range:</label>
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="2.0"
-                    step="0.1"
-                    value={frequencyRange[1]}
-                    onChange={(e) => setFrequencyRange([frequencyRange[0], parseFloat(e.target.value)])}
-                    className="control-input"
-                  />
-                  <span className="text-sm text-gray-300">{frequencyRange[0].toFixed(1)} - {frequencyRange[1].toFixed(1)} Hz</span>
-                </div>
-
-                <div className="control-group">
-                  <label className="control-label">Visualization Mode:</label>
-                  <select
-                    value={visualizationMode}
-                    onChange={(e) => setVisualizationMode(e.target.value)}
-                    className="control-input bg-gray-800 border border-gray-600 rounded text-white p-2"
-                  >
-                    <option value="seismic">Seismic Wave Field</option>
-                    <option value="electromagnetic">Electromagnetic Field</option>
-                    <option value="harmonic">Harmonic Resonance</option>
-                  </select>
-                </div>
-              </>
-            )}
-          </div>
 
           <div className="visualization-container">
             {isLoading ? (

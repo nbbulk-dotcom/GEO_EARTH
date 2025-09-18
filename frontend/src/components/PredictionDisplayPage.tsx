@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, AlertTriangle, BarChart3, Eye } from 'lucide-react';
+import { TrendingUp, BarChart3 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 
 interface PredictionDisplayPageProps {
@@ -48,9 +48,6 @@ const PredictionDisplayPage: React.FC<PredictionDisplayPageProps> = ({ onNext, o
     }
   };
 
-  const maxProbability = Math.max(...predictions.map(p => p.probability_percent));
-  const avgProbability = predictions.reduce((sum, p) => sum + p.probability_percent, 0) / predictions.length;
-  const highRiskDays = predictions.filter(p => p.risk_level.toLowerCase() === 'high').length;
 
   const weeks: Array<{
     number: number;
@@ -75,41 +72,27 @@ const PredictionDisplayPage: React.FC<PredictionDisplayPageProps> = ({ onNext, o
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white">
       <style>{`
-        .progress-bar {
+        .header {
           background: rgba(30, 41, 59, 0.8);
           border-bottom: 1px solid rgba(148, 163, 184, 0.3);
           padding: 1rem 0;
         }
-        .progress-steps {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 2rem;
-          max-width: 800px;
+        .header-content {
+          max-width: 1200px;
           margin: 0 auto;
-        }
-        .progress-step {
           display: flex;
+          justify-content: space-between;
           align-items: center;
-          gap: 0.5rem;
+          padding: 0 2rem;
+        }
+        .logo {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #fbbf24;
+        }
+        .user-info {
           font-size: 0.875rem;
-        }
-        .progress-step.completed {
-          color: #10b981;
-        }
-        .progress-step-number {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-        .progress-step.completed .progress-step-number {
-          background: #10b981;
-          color: white;
+          color: #94a3b8;
         }
         .main-container {
           background: rgba(30, 41, 59, 0.9);
@@ -130,26 +113,33 @@ const PredictionDisplayPage: React.FC<PredictionDisplayPageProps> = ({ onNext, o
           justify-content: space-between;
           align-items: center;
         }
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 1rem;
-          margin-bottom: 2rem;
-        }
-        .stat-card {
+        .legend {
           background: rgba(15, 23, 42, 0.6);
           border-radius: 12px;
           padding: 1.5rem;
-          text-align: center;
+          margin-bottom: 2rem;
         }
-        .stat-value {
-          font-size: 2rem;
-          font-weight: 700;
-          margin-bottom: 0.5rem;
+        .legend-title {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: white;
+          margin-bottom: 1rem;
         }
-        .stat-label {
-          color: #94a3b8;
+        .legend-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 1rem;
+        }
+        .legend-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
           font-size: 0.875rem;
+        }
+        .legend-color {
+          width: 16px;
+          height: 16px;
+          border-radius: 4px;
         }
         .week-section {
           margin-bottom: 2rem;
@@ -210,34 +200,6 @@ const PredictionDisplayPage: React.FC<PredictionDisplayPageProps> = ({ onNext, o
           border-radius: 4px;
           background: rgba(0, 0, 0, 0.3);
         }
-        .legend {
-          background: rgba(15, 23, 42, 0.6);
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-top: 2rem;
-        }
-        .legend-title {
-          font-size: 1.125rem;
-          font-weight: 600;
-          color: white;
-          margin-bottom: 1rem;
-        }
-        .legend-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 1rem;
-        }
-        .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-        }
-        .legend-color {
-          width: 16px;
-          height: 16px;
-          border-radius: 4px;
-        }
         .action-buttons {
           display: flex;
           gap: 1rem;
@@ -256,11 +218,12 @@ const PredictionDisplayPage: React.FC<PredictionDisplayPageProps> = ({ onNext, o
           gap: 0.5rem;
         }
         .btn-primary {
-          background: #3b82f6;
-          color: white;
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          color: #1e293b;
+          font-weight: 700;
         }
         .btn-primary:hover {
-          background: #2563eb;
+          background: linear-gradient(135deg, #f59e0b, #d97706);
         }
         .btn-secondary {
           background: rgba(148, 163, 184, 0.2);
@@ -272,23 +235,12 @@ const PredictionDisplayPage: React.FC<PredictionDisplayPageProps> = ({ onNext, o
         }
       `}</style>
 
-      <div className="progress-bar">
-        <div className="progress-steps">
-          <div className="progress-step completed">
-            <div className="progress-step-number">✓</div>
-            <span>Location Input and Confirmation</span>
-          </div>
-          <div className="progress-step completed">
-            <div className="progress-step-number">✓</div>
-            <span>Data Sources</span>
-          </div>
-          <div className="progress-step completed">
-            <div className="progress-step-number">✓</div>
-            <span>Engine Selection</span>
-          </div>
-          <div className="progress-step completed">
-            <div className="progress-step-number">✓</div>
-            <span>Engine Activation</span>
+      <div className="header">
+        <div className="header-content">
+          <div className="logo">BRETT System Interface</div>
+          <div className="user-info">
+            <div>User: Guest</div>
+            <div>Session Active</div>
           </div>
         </div>
       </div>
@@ -301,38 +253,43 @@ const PredictionDisplayPage: React.FC<PredictionDisplayPageProps> = ({ onNext, o
               21-Day Earthquake Predictions
             </h1>
             <p className="text-slate-300">
-              Advanced seismic prediction analysis with magnitude estimates and confidence levels
+              12-Dimensional GAL-CRM Framework v4.0
             </p>
           </div>
 
           {location && (
             <div className="location-info">
               <div>
-                <h3 className="font-semibold text-white mb-1">Analysis Location</h3>
-                <p className="text-slate-300">{location.location_name}</p>
-                <p className="text-sm text-slate-400">
-                  {location.latitude.toFixed(4)}°, {location.longitude.toFixed(4)}° 
-                  (Radius: {location.radius_km} km)
-                </p>
+                <h3 className="font-semibold text-white mb-1">Location: {location.location_name}</h3>
+                <p className="text-slate-300">Radius: {location.radius_km} km</p>
+                <p className="text-sm text-slate-400">Engine: BRETTEARTH</p>
               </div>
-              <button className="btn btn-secondary" onClick={onChangeLocation}>
-                Change Location
-              </button>
+              <div className="flex gap-2">
+                <button className="btn btn-secondary" onClick={onChangeLocation}>
+                  📍 Change Location
+                </button>
+                <button className="btn btn-secondary">
+                  📊 Export Data
+                </button>
+              </div>
             </div>
           )}
 
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-value text-red-400">{maxProbability.toFixed(1)}%</div>
-              <div className="stat-label">Max Probability</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value text-yellow-400">{avgProbability.toFixed(1)}%</div>
-              <div className="stat-label">Average Probability</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value text-orange-400">{highRiskDays}</div>
-              <div className="stat-label">High Risk Days</div>
+          <div className="legend">
+            <h3 className="legend-title">Risk Level Legend</h3>
+            <div className="legend-grid">
+              <div className="legend-item">
+                <div className="legend-color bg-blue-500"></div>
+                <span>🔵 Low Risk (MAG 2.0-4.0)</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-color bg-yellow-500"></div>
+                <span>🟡 Medium Risk (MAG 4.0-6.0)</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-color bg-red-500"></div>
+                <span>🔴 High Risk (MAG 6.0+)</span>
+              </div>
             </div>
           </div>
 
@@ -381,45 +338,10 @@ const PredictionDisplayPage: React.FC<PredictionDisplayPageProps> = ({ onNext, o
             </div>
           ))}
 
-          <div className="legend">
-            <h3 className="legend-title">Risk Level Legend</h3>
-            <div className="legend-grid">
-              <div className="legend-item">
-                <div className="legend-color bg-blue-500"></div>
-                <span>Low Risk (0-25%)</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-color bg-yellow-500"></div>
-                <span>Moderate Risk (26-50%)</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-color bg-orange-500"></div>
-                <span>Elevated Risk (51-75%)</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-color bg-red-500"></div>
-                <span>High Risk (76-100%)</span>
-              </div>
-            </div>
-          </div>
-
           <div className="action-buttons">
             <button className="btn btn-primary" onClick={onNext}>
-              <Eye size={16} />
-              View Cymatic Visualization
+              ⚠️ View Cymatic Visualization
             </button>
-          </div>
-
-          <div className="mt-6 p-4 bg-blue-900/30 border border-blue-500/50 rounded-lg">
-            <div className="flex items-center mb-2">
-              <AlertTriangle className="w-5 h-5 text-blue-400 mr-2" />
-              <span className="text-blue-200 font-medium">Important Notice</span>
-            </div>
-            <p className="text-blue-100 text-sm">
-              These predictions are based on real-time electromagnetic and geological data analysis using the BRETT v39 calculator system. 
-              They should be used as supplementary information alongside official seismic monitoring services. 
-              Always follow local emergency guidelines and official earthquake warnings.
-            </p>
           </div>
         </div>
       </div>

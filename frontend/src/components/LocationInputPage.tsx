@@ -8,20 +8,20 @@ interface LocationInputPageProps {
 
 const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
   const { location, setLocation } = useData();
-  const [inputMode, setInputMode] = useState<'coordinates' | 'city'>('coordinates');
-  const [latitude, setLatitude] = useState(location?.latitude?.toString() || '');
-  const [longitude, setLongitude] = useState(location?.longitude?.toString() || '');
+  const [inputMode] = useState<'coordinates' | 'city'>('coordinates');
+  const [latitude, setLatitude] = useState(location?.latitude?.toString() || '40.7128');
+  const [longitude, setLongitude] = useState(location?.longitude?.toString() || '-74.0060');
   const [cityName, setCityName] = useState(location?.location_name || '');
   const [country, setCountry] = useState('');
-  const [radiusKm, setRadiusKm] = useState(location?.radius_km || 100);
+  const [radiusKm, setRadiusKm] = useState(location?.radius_km || 500);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleReset = () => {
-    setLatitude('');
-    setLongitude('');
+    setLatitude('40.7128');
+    setLongitude('-74.0060');
     setCityName('');
     setCountry('');
-    setRadiusKm(100);
+    setRadiusKm(500);
   };
 
   const handleConfirmLocation = async () => {
@@ -33,10 +33,10 @@ const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
       if (inputMode === 'coordinates') {
         lat = parseFloat(latitude);
         lng = parseFloat(longitude);
-        locationName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        locationName = `${lat.toFixed(4)}°N, ${Math.abs(lng).toFixed(4)}°W (New York, NY)`;
       } else {
-        lat = 48.8566; // Paris coordinates as example
-        lng = 2.3522;
+        lat = 40.7128;
+        lng = -74.0060;
         locationName = cityName + (country ? `, ${country}` : '');
       }
       
@@ -70,6 +70,28 @@ const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white">
       <style>{`
+        .header {
+          background: rgba(30, 41, 59, 0.8);
+          border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+          padding: 1rem 0;
+        }
+        .header-content {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0 2rem;
+        }
+        .logo {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #fbbf24;
+        }
+        .user-info {
+          font-size: 0.875rem;
+          color: #94a3b8;
+        }
         .progress-bar {
           background: rgba(30, 41, 59, 0.8);
           border-bottom: 1px solid rgba(148, 163, 184, 0.3);
@@ -90,7 +112,7 @@ const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
           font-size: 0.875rem;
         }
         .progress-step.active {
-          color: #3b82f6;
+          color: #fbbf24;
           font-weight: 600;
         }
         .progress-step.completed {
@@ -107,8 +129,8 @@ const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
           font-weight: 600;
         }
         .progress-step.active .progress-step-number {
-          background: #3b82f6;
-          color: white;
+          background: #fbbf24;
+          color: #1e293b;
         }
         .progress-step.completed .progress-step-number {
           background: #10b981;
@@ -128,28 +150,11 @@ const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
           max-width: 600px;
           margin: 4rem auto;
         }
-        .toggle-buttons {
-          display: flex;
+        .form-section {
           background: rgba(15, 23, 42, 0.6);
           border-radius: 12px;
-          padding: 4px;
+          padding: 2rem;
           margin-bottom: 2rem;
-        }
-        .toggle-button {
-          flex: 1;
-          padding: 0.75rem 1rem;
-          border: none;
-          background: transparent;
-          color: #94a3b8;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-weight: 500;
-        }
-        .toggle-button.active {
-          background: #3b82f6;
-          color: white;
-          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
         }
         .form-group {
           margin-bottom: 1.5rem;
@@ -171,8 +176,8 @@ const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
         }
         .form-input:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: #fbbf24;
+          box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
         }
         .form-select {
           width: 100%;
@@ -209,12 +214,13 @@ const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
           background: rgba(148, 163, 184, 0.3);
         }
         .btn-primary {
-          background: #3b82f6;
-          color: white;
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          color: #1e293b;
           flex: 1;
+          font-weight: 700;
         }
         .btn-primary:hover:not(:disabled) {
-          background: #2563eb;
+          background: linear-gradient(135deg, #f59e0b, #d97706);
         }
         .btn-primary:disabled {
           opacity: 0.5;
@@ -222,23 +228,33 @@ const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
         }
       `}</style>
 
+      <div className="header">
+        <div className="header-content">
+          <div className="logo">BRETT System Interface</div>
+          <div className="user-info">
+            <div>User: Guest</div>
+            <div>Session Active</div>
+          </div>
+        </div>
+      </div>
+
       <div className="progress-bar">
         <div className="progress-steps">
           <div className="progress-step active">
             <div className="progress-step-number">1</div>
-            <span>Location Input and Confirmation</span>
+            <span>Location Input</span>
           </div>
           <div className="progress-step">
             <div className="progress-step-number">2</div>
-            <span>Data Sources</span>
-          </div>
-          <div className="progress-step">
-            <div className="progress-step-number">3</div>
             <span>Engine Selection</span>
           </div>
           <div className="progress-step">
+            <div className="progress-step-number">3</div>
+            <span>Prediction Display</span>
+          </div>
+          <div className="progress-step">
             <div className="progress-step-number">4</div>
-            <span>Engine Activation</span>
+            <span>Cymatic Visualization</span>
           </div>
         </div>
       </div>
@@ -247,94 +263,81 @@ const LocationInputPage: React.FC<LocationInputPageProps> = ({ onNext }) => {
         <div className="main-container">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2 text-white">
-              Earthquake Location Input and Confirmation
+              Location Input
             </h1>
             <p className="text-slate-300">
-              Enter your precise geolocation for earthquake prediction analysis.
+              Enter coordinates or city name for earthquake prediction analysis
             </p>
           </div>
 
-          <div className="toggle-buttons">
-            <button
-              className={`toggle-button ${inputMode === 'coordinates' ? 'active' : ''}`}
-              onClick={() => setInputMode('coordinates')}
-            >
-              Coordinates
-            </button>
-            <button
-              className={`toggle-button ${inputMode === 'city' ? 'active' : ''}`}
-              onClick={() => setInputMode('city')}
-            >
-              City/Country
-            </button>
-          </div>
+          <div className="form-section">
+            {inputMode === 'coordinates' ? (
+              <>
+                <div className="form-group">
+                  <label className="form-label">Latitude</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    placeholder="e.g., 40.7128"
+                    value={latitude}
+                    onChange={(e) => setLatitude(e.target.value)}
+                    step="any"
+                    min="-90"
+                    max="90"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Longitude</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    placeholder="e.g., -74.0060"
+                    value={longitude}
+                    onChange={(e) => setLongitude(e.target.value)}
+                    step="any"
+                    min="-180"
+                    max="180"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label className="form-label">City</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., New York"
+                    value={cityName}
+                    onChange={(e) => setCityName(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Country (auto-detected)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., United States"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
 
-          {inputMode === 'coordinates' ? (
-            <>
-              <div className="form-group">
-                <label className="form-label">Latitude</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="e.g., 40.7128"
-                  value={latitude}
-                  onChange={(e) => setLatitude(e.target.value)}
-                  step="any"
-                  min="-90"
-                  max="90"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Longitude</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="e.g., -74.0060"
-                  value={longitude}
-                  onChange={(e) => setLongitude(e.target.value)}
-                  step="any"
-                  min="-180"
-                  max="180"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="form-group">
-                <label className="form-label">City</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g., New York"
-                  value={cityName}
-                  onChange={(e) => setCityName(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Country (auto-detected)</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g., United States"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                />
-              </div>
-            </>
-          )}
-
-          <div className="form-group">
-            <label className="form-label">Monitoring Radius</label>
-            <select
-              className="form-select"
-              value={radiusKm}
-              onChange={(e) => setRadiusKm(parseInt(e.target.value))}
-            >
-              <option value={100}>100 km</option>
-              <option value={200}>200 km</option>
-              <option value={500}>500 km</option>
-              <option value={1000}>1000 km</option>
-            </select>
+            <div className="form-group">
+              <label className="form-label">Radius (kilometers)</label>
+              <select
+                className="form-select"
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(parseInt(e.target.value))}
+              >
+                <option value={100}>100 km</option>
+                <option value={200}>200 km</option>
+                <option value={500}>500 km</option>
+                <option value={1000}>1000 km</option>
+              </select>
+            </div>
           </div>
 
           <div className="button-group">

@@ -60,6 +60,28 @@ const EngineSelectionPage: React.FC<EngineSelectionPageProps> = ({ onNext }) => 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-black text-white">
       <style>{`
+        .header {
+          background: rgba(30, 41, 59, 0.8);
+          border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+          padding: 1rem 0;
+        }
+        .header-content {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0 2rem;
+        }
+        .logo {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #fbbf24;
+        }
+        .user-info {
+          font-size: 0.875rem;
+          color: #94a3b8;
+        }
         .progress-bar {
           background: rgba(30, 41, 59, 0.8);
           border-bottom: 1px solid rgba(148, 163, 184, 0.3);
@@ -80,7 +102,7 @@ const EngineSelectionPage: React.FC<EngineSelectionPageProps> = ({ onNext }) => 
           font-size: 0.875rem;
         }
         .progress-step.active {
-          color: #3b82f6;
+          color: #fbbf24;
           font-weight: 600;
         }
         .progress-step.completed {
@@ -97,8 +119,8 @@ const EngineSelectionPage: React.FC<EngineSelectionPageProps> = ({ onNext }) => 
           font-weight: 600;
         }
         .progress-step.active .progress-step-number {
-          background: #3b82f6;
-          color: white;
+          background: #fbbf24;
+          color: #1e293b;
         }
         .progress-step.completed .progress-step-number {
           background: #10b981;
@@ -279,23 +301,33 @@ const EngineSelectionPage: React.FC<EngineSelectionPageProps> = ({ onNext }) => 
         }
       `}</style>
 
+      <div className="header">
+        <div className="header-content">
+          <div className="logo">BRETT System Interface</div>
+          <div className="user-info">
+            <div>User: Guest</div>
+            <div>Session Active</div>
+          </div>
+        </div>
+      </div>
+
       <div className="progress-bar">
         <div className="progress-steps">
           <div className="progress-step completed">
             <div className="progress-step-number">✓</div>
-            <span>Location Input and Confirmation</span>
-          </div>
-          <div className="progress-step completed">
-            <div className="progress-step-number">✓</div>
-            <span>Data Sources</span>
+            <span>Location Input</span>
           </div>
           <div className="progress-step active">
-            <div className="progress-step-number">3</div>
+            <div className="progress-step-number">2</div>
             <span>Engine Selection</span>
           </div>
           <div className="progress-step">
+            <div className="progress-step-number">3</div>
+            <span>Prediction Display</span>
+          </div>
+          <div className="progress-step">
             <div className="progress-step-number">4</div>
-            <span>Engine Activation</span>
+            <span>Cymatic Visualization</span>
           </div>
         </div>
       </div>
@@ -304,10 +336,10 @@ const EngineSelectionPage: React.FC<EngineSelectionPageProps> = ({ onNext }) => 
         <div className="main-container">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2 text-white">
-              Engine Selection and Activation
+              Engine Selection
             </h1>
             <p className="text-slate-300">
-              Choose between BRETTEARTH or BRETTCOMBO engines for earthquake prediction analysis.
+              Choose your prediction engine for earthquake analysis
             </p>
           </div>
 
