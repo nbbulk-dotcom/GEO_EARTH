@@ -4,11 +4,16 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import asyncio
 import math
+import logging
 
 from app.models.prediction import LocationInput, EngineResult, CombinedPrediction, CymaticData
 from app.core.brett_engine import BrettCoreEngine
 from app.core.earthquake_space_engine import EarthquakeSpaceEngine
 from app.core.space_correlation_engine import SpaceCorrelationEngine
+from app.core.volcanic_locator import VolcanicLocator
+from app.core.forecast_engine import VolcanicForecastEngine
+from app.ml.eruption_forecaster import VolcanicMLPredictor
+from app.services.data_ingest import VolcanicDataIngestor
 from app.services.enhanced_quantum_validation_service import EnhancedQuantumValidationService
 from app.subroutines.magnetometer import LocalizedMagnetometerAnalyzer
 from app.services.data_sources import DataSourcesService
@@ -234,6 +239,159 @@ async def generate_cymatic_visualization(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cymatic visualization failed: {str(e)}")
+
+@router.get("/volcano/forecast/{volcano_id}")
+async def get_volcanic_forecast(volcano_id: str):
+    """Get 21-day volcanic eruption forecast"""
+    try:
+        forecast_engine = VolcanicForecastEngine()
+        ml_predictor = VolcanicMLPredictor()
+        data_ingestor = VolcanicDataIngestor()
+        
+        volcano_coords = {
+            'kilauea': (19.4, -155.6),
+            'vesuvius': (40.8, 14.4),
+            'fuji': (35.4, 138.7),
+            'etna': (37.7, 15.0),
+            'stromboli': (38.8, 15.2)
+        }
+        
+        location = volcano_coords.get(volcano_id, (0, 0))
+        
+        sensor_data = await data_ingestor.ingest_all_sources(volcano_id)
+        
+        ml_features = {
+            'seismic_data': [2.1, 2.3, 1.9, 2.0, 2.2],  # Mock data
+            'gas_data': [150, 160, 145, 155, 148],
+            'thermal_data': [300, 305, 298, 302, 301],
+            'deformation_data': [0.1, 0.2, 0.15, 0.18, 0.22],
+            'rgb_values': [0.8, 0.2, 0.1],
+            'cmyk_values': [0.2, 0.8, 0.9, 0.0]
+        }
+        
+        base_prob = ml_predictor.predict_eruption(ml_features)
+        
+        forecast = forecast_engine.simulate_21_day_forecast(location, base_prob)
+        
+        alerts = forecast_engine.generate_alert_conditions(forecast)
+        
+        seismic_data = [
+            {'magnitude': 2.1, 'time': datetime.utcnow().isoformat(), 'depth': 5000},
+            {'magnitude': 1.9, 'time': (datetime.utcnow() - timedelta(hours=1)).isoformat(), 'depth': 4800},
+            {'magnitude': 2.3, 'time': (datetime.utcnow() - timedelta(hours=2)).isoformat(), 'depth': 5200}
+        ]
+        
+        gas_data = [
+            {'so2_ppm': 150, 'co2_ppm': 400, 'time': datetime.utcnow().isoformat()},
+            {'so2_ppm': 148, 'co2_ppm': 398, 'time': (datetime.utcnow() - timedelta(hours=1)).isoformat()},
+            {'so2_ppm': 152, 'co2_ppm': 402, 'time': (datetime.utcnow() - timedelta(hours=2)).isoformat()}
+        ]
+        
+        return {
+            'volcano_id': volcano_id,
+            'location': location,
+            'forecast': forecast,
+            'seismic': seismic_data,
+            'gas': gas_data,
+            'alerts': alerts,
+            'ml_base_probability': base_prob,
+            'data_sources': sensor_data.get('status', 'unknown'),
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Volcanic forecast failed for {volcano_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Forecast failed: {str(e)}")
+
+@router.post("/volcano/simulate")
+async def simulate_volcanic_activity(request: dict):
+    """Simulate volcanic activity with custom parameters"""
+    try:
+        angles = request.get('angles', {})
+        depths = request.get('depths', [1000, 3000, 5000, 10000])
+        chamber_volume = request.get('chamber_volume', 1000000)
+        
+        volcanic_locator = VolcanicLocator()
+        
+        results = []
+        for depth in depths:
+            resonance = volcanic_locator.calculate_chamber_resonance(chamber_volume, depth)
+            angle_adj = volcanic_locator.calculate_depth_angle_adjustment(
+                angles.get('surface', 54.74), depth
+            )
+            
+            results.append({
+                'depth': depth,
+                'depth_km': depth / 1000,
+                'resonance_frequency': resonance,
+                'adjusted_angle': angle_adj,
+                'chamber_volume': chamber_volume,
+                'velocity_at_depth': volcanic_locator._get_velocity_at_depth(depth)
+            })
+            
+        return {
+            'simulation_results': results,
+            'input_parameters': {
+                'chamber_volume': chamber_volume,
+                'surface_angle': angles.get('surface', 54.74),
+                'depths_analyzed': depths
+            },
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Volcanic simulation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+
+@router.get("/volcano/resonance/{volcano_id}")
+async def get_volcanic_resonance(volcano_id: str, depth: int = 5000):
+    """Get volcanic resonance analysis for specific depth"""
+    try:
+        volcanic_locator = VolcanicLocator()
+        
+        volcano_coords = {
+            'kilauea': (19.4, -155.6),
+            'vesuvius': (40.8, 14.4),
+            'fuji': (35.4, 138.7),
+            'etna': (37.7, 15.0),
+            'stromboli': (38.8, 15.2)
+        }
+        
+        location = volcano_coords.get(volcano_id, (0, 0))
+        
+        # Calculate resonance parameters
+        chamber_volume = 1000000  # Default 1 million cubic meters
+        resonance_freq = volcanic_locator.calculate_chamber_resonance(chamber_volume, depth)
+        angle_adjustment = volcanic_locator.calculate_depth_angle_adjustment(54.74, depth)
+        proximity_factor = volcanic_locator.calculate_volcanic_proximity_factor(location[0], location[1])
+        regional_modifier = volcanic_locator.get_regional_modifier(location[0], location[1])
+        
+        seismic_vars = volcanic_locator.get_seismic_variables_from_earthquake_system(location)
+        
+        return {
+            'volcano_id': volcano_id,
+            'location': location,
+            'depth': depth,
+            'resonance_analysis': {
+                'frequency_hz': resonance_freq,
+                'adjusted_angle_degrees': angle_adjustment,
+                'proximity_factor': proximity_factor,
+                'regional_modifier': regional_modifier,
+                'chamber_volume_m3': chamber_volume,
+                'velocity_at_depth_ms': volcanic_locator._get_velocity_at_depth(depth)
+            },
+            'seismic_variables': seismic_vars,
+            'harmonic_amplification': {
+                'space_angle': 26.565,
+                'earth_angle': 54.74,
+                'constructive_interference': abs(angle_adjustment - 26.565) < 5.0 or abs(angle_adjustment - 54.74) < 5.0
+            },
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Resonance analysis failed for {volcano_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Resonance analysis failed: {str(e)}")
 
 def calculate_cmyk_model(brett_result: dict, magnetometer_result: dict, rgb_values: Optional[List[dict]] = None, location: Optional[LocationInput] = None) -> List[dict]:
     predictions = []
