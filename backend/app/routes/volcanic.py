@@ -116,7 +116,7 @@ async def analyze_volcanic_region(
             "regional_characteristics": {
                 "modifier": regional_config["modifier"],
                 "latitude_factor": regional_config["latitude_factor"],
-                "volcanic_activity_level": self._assess_regional_activity(region),
+                "volcanic_activity_level": _assess_regional_activity(region),
             },
         }
 

@@ -1,0 +1,150 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Ant Design customizations */
+.ant-layout {
+  background: transparent !important;
+}
+
+.ant-card {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(10px);
+}
+
+.ant-card-head {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.ant-card-head-title {
+  color: #ffffff !important;
+}
+
+.ant-card-body {
+  color: #ffffff !important;
+}
+
+.ant-statistic-title {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.ant-statistic-content {
+  color: #ffffff !important;
+}
+
+.ant-select {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ant-select-selector {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+.ant-select-selection-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.ant-slider {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ant-slider-rail {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.ant-slider-track {
+  background: #ff6b35 !important;
+}
+
+.ant-slider-handle {
+  border: 2px solid #ff6b35 !important;
+  background: #ff6b35 !important;
+}
+
+.ant-timeline-item-head {
+  background: #ff6b35 !important;
+  border-color: #ff6b35 !important;
+}
+
+.ant-timeline-item-content {
+  color: #ffffff !important;
+}
+
+.ant-tag {
+  background: rgba(255, 107, 53, 0.2) !important;
+  border: 1px solid rgba(255, 107, 53, 0.5) !important;
+  color: #ff6b35 !important;
+}
+
+.ant-progress-text {
+  color: #ffffff !important;
+}
+
+.ant-tabs-tab {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.ant-tabs-tab-active {
+  color: #ff6b35 !important;
+}
+
+.ant-tabs-ink-bar {
+  background: #ff6b35 !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 53, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 53, 0.7);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .ant-card {
+    margin-bottom: 16px;
+  }
+}
