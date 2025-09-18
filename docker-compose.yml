@@ -11,6 +11,7 @@ services:
       - DATABASE_URL=postgresql://postgres:securepassword123@db:5432/brett_earthquake
       - DEBUG=false
       - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     volumes:
       - ./backend:/app
       - backend_data:/app/data
@@ -34,8 +35,20 @@ services:
       - backend
     restart: unless-stopped
 
+  db:
+    image: timescale/timescaledb:2.10.1-pg14
+    environment:
+      POSTGRES_DB: brett_earthquake
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: securepassword123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   redis:
-    image: redis:7-alpine
+    image: redis:7.0.8
     ports:
       - "6379:6379"
     volumes:
@@ -44,4 +57,5 @@ services:
 
 volumes:
   backend_data:
+  postgres_data:
   redis_data:
