@@ -207,7 +207,6 @@ const HistoricalView: React.FC<HistoricalViewProps> = ({
               {events.map((event, index) => (
                 <tr key={index} style={{ 
                   borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                  '&:hover': { background: 'rgba(255, 255, 255, 0.05)' }
                 }}>
                   <td style={{ color: '#b0b0b0', padding: '1rem' }}>{event.event_date}</td>
                   <td style={{ color: 'white', padding: '1rem', fontWeight: 'bold' }}>

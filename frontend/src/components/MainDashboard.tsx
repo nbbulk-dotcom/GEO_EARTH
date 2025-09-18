@@ -34,6 +34,7 @@ const MainDashboard: React.FC = () => {
       }
     }
     setIsLocked(uiConfigService.isUILocked());
+    console.log('UI Lock Status:', isLocked);
   };
 
   const saveUIConfig = async () => {

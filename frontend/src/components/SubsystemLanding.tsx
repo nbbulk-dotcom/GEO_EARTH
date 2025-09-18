@@ -294,7 +294,7 @@ const SubsystemLanding: React.FC = () => {
                 padding: '0 3rem'
               }}
             >
-              Enter {system?.charAt(0).toUpperCase() + system?.slice(1)} System
+              Enter {system ? system.charAt(0).toUpperCase() + system.slice(1) : ''} System
             </Button>
           </div>
         </Card>
